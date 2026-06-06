@@ -3,65 +3,44 @@ const {
   StringSelectMenuInteraction,
   MessageFlags,
 } = require('discord.js');
-const { REACTION_ROLES } = require('../utils/reaktionRoles/boosterRolesConfig');
-
-const EPHEMERAL = { flags: MessageFlags.Ephemeral };
+const { REACTION_ROLES } = require('../../utils/reaktionRoles/boosterRolesConfig');
 
 module.exports = {
-  customId: 'boost_role_select_2',
-  devOnly: false,
-  testMode: false,
+  customId: 'boost_role_select_2', 
   userPermissions: [],
   botPermissions: [],
-  /**
-   * @param {Client} client
-   * @param {StringSelectMenuInteraction} interaction
-   */
+
   run: async (client, interaction) => {
+    const { member } = interaction;
     const selectedRoleId = interaction.values[0];
-    const { guild, member } = interaction;
 
-    // Sicherstellen, dass die Rolle aus unserer Config kommt (kein Spoofing)
-    const mapping = REACTION_ROLES.find(r => r.roleId === selectedRoleId);
-    if (!mapping) {
+    // Alle Rollen aus Menü 2 holen
+    const menu2Roles = REACTION_ROLES.filter(r => r.menu === 2);  // ← geändert
+
+    const isBoosting = !!member.premiumSinceTimestamp;
+    if (!isBoosting) {
       return interaction.reply({
-        content: '❌ Diese Rolle ist nicht (mehr) verfügbar.',
-        ...EPHEMERAL,
+        content: '❌ Du musst den Server boosten, um eine Farbrolle zu erhalten.',
+        ephemeral: true,
       });
     }
 
-    const role =
-      guild.roles.cache.get(selectedRoleId) ??
-      (await guild.roles.fetch(selectedRoleId).catch(() => null));
-    if (!role) {
-      return interaction.reply({
-        content: '❌ Die Rolle existiert nicht (mehr) auf diesem Server.',
-        ...EPHEMERAL,
-      });
-    }
-
-    try {
-      if (member.roles.cache.has(selectedRoleId)) {
-        await member.roles.remove(selectedRoleId, 'Boost-Panel: Rolle abgewählt');
-        await interaction.reply({
-          content: `➖ Rolle ${role} wurde **entfernt**.`,
-          ...EPHEMERAL,
-        });
-        return interaction.message.suppressEmbeds(false);
+    // Alle anderen Menü-2-Rollen entfernen (außer der gewählten)
+    for (const r of menu2Roles) {  
+      if (r.roleId !== selectedRoleId && member.roles.cache.has(r.roleId)) {
+        await member.roles.remove(r.roleId, 'Boost-Farbrolle gewechselt').catch(() => null);
       }
+    }
 
-      await member.roles.add(selectedRoleId, 'Boost-Panel: Rolle ausgewählt');
-      await interaction.reply({
-        content: `➕ Rolle ${role} wurde **hinzugefügt**.`,
-        ...EPHEMERAL,
-      });
-      return interaction.message.suppressEmbeds(false);
-    } catch (err) {
-      console.error('[boost_role_select] Konnte Rolle nicht ändern:', err);
-      return interaction.reply({
-        content: '❌ Konnte die Rolle nicht ändern. Steht meine Bot-Rolle in der Hierarchie *über* der zu vergebenden Rolle und habe ich `Manage Roles`?',
-        ...EPHEMERAL,
+    if (!member.roles.cache.has(selectedRoleId)) {
+      await member.roles.add(selectedRoleId, 'Boost-Farbrolle gewählt').catch(err => {
+        console.error('[boostRoleSlct2] Rolle hinzufügen fehlgeschlagen:', err);
       });
     }
+
+    await interaction.reply({
+      content: `✅ Deine Farbrolle wurde gesetzt!`,
+      ephemeral: true,
+    });
   },
 };
