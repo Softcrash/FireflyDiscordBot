@@ -65,7 +65,7 @@ module.exports = {
     buttons: ['ticketClose'],
   },
   support: {
-    teamRoleIds: ['1491474529439187125'],
+    teamRoleIds: ['1491474529439187125', '1491473710471843990', '1491474312883077402'],
     icon: '✉️',
     title: 'support',
     color: 0xf39c12,
