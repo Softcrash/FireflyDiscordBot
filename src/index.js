@@ -32,4 +32,4 @@ const client = new Client({
     console.error("❌ Start fehlgeschlagen:", err);
     process.exit(1);
   }
-});
+})();
