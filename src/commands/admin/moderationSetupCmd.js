@@ -14,6 +14,7 @@ const COMMAND_CHOICES = [
   { name: 'Ban', value: 'ban' },
   { name: 'Warn', value: 'warn' },
   { name: 'Timeout', value: 'timeout' },
+  { name: 'Infractions', value: 'infractions' },
 ];
 
 module.exports = {

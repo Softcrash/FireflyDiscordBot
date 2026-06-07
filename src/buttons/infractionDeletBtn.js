@@ -1,6 +1,5 @@
-const { Client, ButtonInteraction, MessageFlags } = require('discord.js');
+const { Client, ButtonInteraction, MessageFlags, PermissionFlagsBits } = require('discord.js');
 const { Infraction } = require('../database/registry');
-const { canUseCommand } = require('../utils/moderation/modPermissions');
 const { buildInfractionsContainer } = require('../utils/moderation/infractionsView');
 
 module.exports = {
@@ -18,11 +17,10 @@ module.exports = {
     const infractionId = Number(rawInfId);
     const page = Number(rawPage) || 0;
 
-    // Defensive Berechtigungsprüfung. Die Ansicht ist zwar ephemeral und an den
-    // ausführenden User gebunden, aber Löschen ist destruktiv → trotzdem prüfen.
-    if (!(await canUseCommand(interaction.member, 'infractions'))) {
+    // Löschen ist Admin-only — unabhängig davon, wer das Panel sehen darf.
+    if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
       return interaction.reply({
-        content: '`❌` Du hast keine Berechtigung, Einträge zu löschen.',
+        content: '`❌` Nur Administratoren dürfen Einträge löschen.',
         flags: MessageFlags.Ephemeral,
       });
     }

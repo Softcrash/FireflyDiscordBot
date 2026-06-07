@@ -7,6 +7,7 @@ const FALLBACK_PERMISSIONS = {
   ban: PermissionFlagsBits.BanMembers,
   warn: PermissionFlagsBits.ModerateMembers,
   timeout: PermissionFlagsBits.ModerateMembers,
+  infractions: PermissionFlagsBits.ModerateMembers,
 };
 
 /**
@@ -16,7 +17,7 @@ const FALLBACK_PERMISSIONS = {
  * - Wenn nichts konfiguriert ist, fällt's auf die Discord-Default-Permission
  *
  * @param {import('discord.js').GuildMember} member
- * @param {'ban'|'warn'|'timeout'} command
+ * @param {'ban'|'warn'|'timeout'|'infractions'} command
  * @returns {Promise<boolean>}
  */
 async function canUseCommand(member, command) {
