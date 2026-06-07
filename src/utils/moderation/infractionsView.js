@@ -100,9 +100,6 @@ async function buildInfractionsContainer(guildId, targetUser, requestedPage) {
       lines.push(`**Lief ab:** <t:${expiresTs}:R>`);
     }
 
-    // Stabile DB-ID dezent als Subtext (wird im Modlog & in Bestätigungen referenziert).
-    lines.push(`-# DB-ID: #${inf.id}`);
-
     const section = new SectionBuilder()
       .addTextDisplayComponents(new TextDisplayBuilder().setContent(lines.join('\n')))
       .setButtonAccessory(

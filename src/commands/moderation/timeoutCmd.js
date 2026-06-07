@@ -125,8 +125,7 @@ module.exports = {
     const confirmEmbed = new EmbedBuilder()
       .setColor(`#${mConfig.embedColorSuccess}`)
       .setDescription(
-        `\`✅\` **${targetUser.tag}** wurde für **${duration.human}** getimeoutet.\n📝 Grund: \`${reason}\`` +
-          (infraction?.id ? `\n📒 Infraction-ID: \`#${infraction.id}\`` : '')
+        `\`✅\` **${targetUser.tag}** wurde für **${duration.human}** getimeoutet.\n📝 Grund: \`${reason}\``
       );
     await interaction.editReply({ embeds: [confirmEmbed] });
 

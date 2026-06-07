@@ -81,8 +81,7 @@ module.exports = {
       .setTitle(`⚠️ Du wurdest auf ${interaction.guild.name} verwarnt`)
       .addFields(
         { name: '📝 Grund', value: `\`\`\`${reason}\`\`\`` },
-        { name: '🛡️ Moderator', value: `${interaction.user.tag}`, inline: true },
-        { name: '📒 Infraction-ID', value: `\`#${infraction.id}\``, inline: true }
+        { name: '🛡️ Moderator', value: `${interaction.user.tag}`, inline: true }
       )
       .setTimestamp();
     await targetUser.send({ embeds: [dmEmbed] }).catch(() => {});
@@ -91,7 +90,7 @@ module.exports = {
     const confirmEmbed = new EmbedBuilder()
       .setColor(`#${mConfig.embedColorSuccess}`)
       .setDescription(
-        `\`✅\` **${targetUser.tag}** wurde verwarnt.\n📝 Grund: \`${reason}\`\n📒 Infraction-ID: \`#${infraction.id}\``
+        `\`✅\` **${targetUser.tag}** wurde verwarnt.\n📝 Grund: \`${reason}\``
       );
     await interaction.editReply({ embeds: [confirmEmbed] });
 

@@ -104,8 +104,7 @@ module.exports = {
     const confirmEmbed = new EmbedBuilder()
       .setColor(`#${mConfig.embedColorSuccess}`)
       .setDescription(
-        `\`✅\` **${targetUser.tag}** wurde gebannt.\n📝 Grund: \`${reason}\`` +
-          (infraction?.id ? `\n📒 Infraction-ID: \`#${infraction.id}\`` : '')
+        `\`✅\` **${targetUser.tag}** wurde gebannt.\n📝 Grund: \`${reason}\``
       );
     await interaction.editReply({ embeds: [confirmEmbed] });
 
