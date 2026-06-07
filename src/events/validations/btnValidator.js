@@ -10,7 +10,13 @@ module.exports = async (client, interaction) => {
   const buttons = getButtons();
 
   try {
-    const buttonObject = buttons.find((btn) => btn.customId === interaction.customId);
+    // Exakter Match (statische Buttons) ODER Prefix-Match (dynamische Buttons,
+    // die Daten im customId tragen, z.B. `inf:del:<id>:<userId>:<page>`).
+    const buttonObject = buttons.find(
+      (btn) =>
+        btn.customId === interaction.customId ||
+        (btn.customIdPrefix && interaction.customId.startsWith(btn.customIdPrefix))
+    );
     if (!buttonObject) return;
 
     if (buttonObject.devOnly) {
