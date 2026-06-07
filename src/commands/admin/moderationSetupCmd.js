@@ -89,7 +89,7 @@ module.exports = {
     ),
   userPermissions: [PermissionFlagsBits.Administrator],
   botPermissions: [],
-  testMode: true,
+  testMode: false,
   devOnly: true,
 
   run: async (client, interaction) => {
