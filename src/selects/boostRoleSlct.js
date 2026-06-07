@@ -40,14 +40,22 @@ module.exports = {
       });
     }
 
+    // Prüfen ob der User noch boosted
+    const isBoosting = !!member.premiumSinceTimestamp;
+    if (!isBoosting) {
+      return interaction.reply({
+        content: '❌ Du musst den Server boosten, um eine Farbrolle zu erhalten.',
+        ...EPHEMERAL,
+      });
+    }
+
     try {
-      if (member.roles.cache.has(selectedRoleId)) {
-        await member.roles.remove(selectedRoleId, 'Boost-Panel: Rolle abgewählt');
-        await interaction.reply({
-          content: `➖ Rolle ${role} wurde **entfernt**.`,
-          ...EPHEMERAL,
-        });
-        return interaction.message.suppressEmbeds(false);
+      // Alle anderen Menü-1-Rollen entfernen
+      const menu1Roles = REACTION_ROLES.filter(r => (r.menu ?? 1) === 1);
+      for (const r of menu1Roles) {
+        if (r.roleId !== selectedRoleId && member.roles.cache.has(r.roleId)) {
+          await member.roles.remove(r.roleId, 'Boost-Farbrolle gewechselt').catch(() => null);
+        }
       }
 
       await member.roles.add(selectedRoleId, 'Boost-Panel: Rolle ausgewählt');
