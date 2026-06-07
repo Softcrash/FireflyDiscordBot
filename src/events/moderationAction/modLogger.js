@@ -20,7 +20,7 @@ const ACTION_META = {
  *     reason,        // string
  *     durationHuman, // string | null (z.B. "2 Stunden")
  *     expiresAt,     // Date | null
- *     infraction,    // Infraction-DB-Row (mit .id)
+ *     infraction,    // Infraction-DB-Row (intern, nicht angezeigt)
  *   }
  */
 module.exports = async (client, payload) => {
@@ -75,9 +75,7 @@ module.exports = async (client, payload) => {
       .setThumbnail(payload.targetUser.displayAvatarURL({ dynamic: true }))
       .addFields(fields)
       .setFooter({
-        text: payload.infraction?.id
-          ? `Infraction #${payload.infraction.id} • ${payload.guild.name}`
-          : payload.guild.name,
+        text: payload.guild.name,
         iconURL: payload.guild.iconURL({ dynamic: true }) ?? undefined,
       })
       .setTimestamp();
