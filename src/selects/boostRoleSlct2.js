@@ -21,7 +21,6 @@ module.exports = {
     const selectedRoleId = interaction.values[0];
     const { guild, member } = interaction;
 
-    // Sicherstellen, dass die Rolle aus unserer Config kommt (kein Spoofing)
     const mapping = REACTION_ROLES.find(r => r.roleId === selectedRoleId);
     if (!mapping) {
       return interaction.reply({
@@ -40,14 +39,21 @@ module.exports = {
       });
     }
 
+    const isBoosting = !!member.premiumSinceTimestamp;
+    if (!isBoosting) {
+      return interaction.reply({
+        content: '❌ Du musst den Server boosten, um eine Farbrolle zu erhalten.',
+        ...EPHEMERAL,
+      });
+    }
+
     try {
-      if (member.roles.cache.has(selectedRoleId)) {
-        await member.roles.remove(selectedRoleId, 'Boost-Panel: Rolle abgewählt');
-        await interaction.reply({
-          content: `➖ Rolle ${role} wurde **entfernt**.`,
-          ...EPHEMERAL,
-        });
-        return interaction.message.suppressEmbeds(false);
+      // Alle anderen Menü-2-Rollen entfernen
+      const menu2Roles = REACTION_ROLES.filter(r => r.menu === 2);
+      for (const r of menu2Roles) {
+        if (r.roleId !== selectedRoleId && member.roles.cache.has(r.roleId)) {
+          await member.roles.remove(r.roleId, 'Boost-Farbrolle gewechselt').catch(() => null);
+        }
       }
 
       await member.roles.add(selectedRoleId, 'Boost-Panel: Rolle ausgewählt');
