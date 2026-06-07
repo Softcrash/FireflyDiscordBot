@@ -4,10 +4,7 @@ const {
   MessageFlags,
 } = require('discord.js');
 const { canUseCommand } = require('../../utils/moderation/modPermissions');
-const { buildInfractionsPage } = require('../../utils/moderation/infractionsView');
-const Pagination = require('../../utils/pagination/pagination');
-
-const EPHEMERAL = { flags: MessageFlags.Ephemeral };
+const { buildInfractionsContainer } = require('../../utils/moderation/infractionsView');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -21,21 +18,34 @@ module.exports = {
   botPermissions: [],
 
   run: async (client, interaction) => {
-    await interaction.deferReply(EPHEMERAL);
+    // Wichtig: NICHT deferReply nutzen. Das IsComponentsV2-Flag muss beim ersten
+    // Senden gesetzt werden und kann nachträglich nicht hinzugefügt werden — also
+    // direkt mit reply() antworten. Die DB-Queries sind klein und schnell genug.
 
     if (!(await canUseCommand(interaction.member, 'infractions'))) {
-      return interaction.editReply({
+      return interaction.reply({
         content: '`❌` Du hast keine Berechtigung, das Strafregister einzusehen.',
+        flags: MessageFlags.Ephemeral,
       });
     }
 
     const targetUser = interaction.options.getUser('user');
 
-    const pagination = new Pagination({
-      interaction,
-      fetchPage: (page) => buildInfractionsPage(interaction.guild.id, targetUser, page),
-    });
+    let container;
+    try {
+      ({ container } = await buildInfractionsContainer(interaction.guild.id, targetUser, 0));
+    } catch (err) {
+      console.error('[infractions] Strafregister konnte nicht geladen werden:', err);
+      return interaction.reply({
+        content: '`❌` Das Strafregister konnte nicht geladen werden.',
+        flags: MessageFlags.Ephemeral,
+      });
+    }
 
-    await pagination.send();
+    await interaction.reply({
+      components: [container],
+      flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral],
+      allowedMentions: { parse: [] },
+    });
   },
 };
