@@ -76,9 +76,6 @@ async function createTicket(interaction, ticketType) {
     return interaction.editReply({ content: '❌ Ticket konnte nicht erstellt werden.' });
   }
 
-  // User adden (Team wird automatisch über den Rollen-Ping in der Nachricht geadded)
-  await thread.members.add(member.id);
-
   // Buttons erstellen
   const ticketButtons = new ActionRowBuilder();
   config.buttons.forEach(buttonId => {
