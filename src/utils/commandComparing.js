@@ -1,4 +1,3 @@
-
 /**
  * @param {import('discord.js').ApplicationCommand} existing
  * @param {{ data: import('discord.js').SlashCommandBuilder }} local
