@@ -29,7 +29,7 @@ module.exports = {
     ),
   userPermissions: [],
   botPermissions: [PermissionFlagsBits.ManageMessages],
-  testMode: false,
+  testMode: true,
   devOnly: false,
 
   run: async (client, interaction) => {
