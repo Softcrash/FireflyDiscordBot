@@ -15,7 +15,7 @@ module.exports = {
     ),
   userPermissions: [],
   botPermissions: [],
-  testMode: false,
+  testMode: true,
   devOnly: false,
 
   run: async (client, interaction) => {

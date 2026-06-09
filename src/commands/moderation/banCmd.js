@@ -33,7 +33,7 @@ module.exports = {
     ),
   userPermissions: [],
   botPermissions: [PermissionFlagsBits.BanMembers],
-  testMode: false,
+  testMode: true,
   devOnly: false,
 
   run: async (client, interaction) => {
