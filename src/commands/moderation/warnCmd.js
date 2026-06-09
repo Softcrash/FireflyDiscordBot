@@ -14,7 +14,6 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('warn')
     .setDescription('Verwarnt einen User und speichert es im Strafregister.')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .addUserOption((opt) =>
       opt.setName('user').setDescription('Der zu verwarnende User.').setRequired(true)
     )
