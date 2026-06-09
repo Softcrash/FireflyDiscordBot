@@ -17,8 +17,12 @@ module.exports = {
   MENTION_LIMIT: 5,
 
   // ── Invite / Link Filter ─────────────────────────────────────────────────────
-  // Invite-Links und externe Links werden still gelöscht (kein Warn, nur Info)
+  // Eigene Guild-ID — Invites zu diesem Server werden NICHT gelöscht/gewarnt
+  OWN_GUILD_ID: '1491382344655962135',
+
+  // Fremde Discord-Invite-Links → löschen + Warn
   BLOCK_INVITES: true,
+  // Externe Links → löschen + stille Info (kein Warn)
   BLOCK_EXTERNAL_LINKS: true,
   // Whitelisted Domains – diese Links dürfen gepostet werden
   ALLOWED_DOMAINS: [
@@ -42,8 +46,7 @@ module.exports = {
   CLEANUP_INTERVAL_MS: 60_000,
 
   // ── Eskalations-Stufen ───────────────────────────────────────────────────────
-  // Nur Warns der letzten 30 Tage zählen für die Eskalation
-  WARN_EXPIRY_MS: 30 * 24 * 60 * 60 * 1000,
+  // Warns gelten für immer (kein Verfall)
 
   TIMEOUT_ON_WARN: 3,
   TIMEOUT_DURATION_MS: 10 * 60 * 1000,

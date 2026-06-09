@@ -1,5 +1,4 @@
 const { PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { Op } = require('sequelize');
 const { Infraction } = require('../../database/registry');
 const { trackMessage, resetUser } = require('../../utils/antispam/spamTracker');
 const {
@@ -7,10 +6,10 @@ const {
   DUPLICATE_COUNT,
   DUPLICATE_MIN_LENGTH,
   MENTION_LIMIT,
+  OWN_GUILD_ID,
   BLOCK_INVITES,
   BLOCK_EXTERNAL_LINKS,
   ALLOWED_DOMAINS,
-  WARN_EXPIRY_MS,
   TIMEOUT_ON_WARN,
   TIMEOUT_DURATION_MS,
   TIMEOUT_DURATION_HUMAN,
@@ -18,7 +17,7 @@ const {
 } = require('../../utils/antispam/antispamConfig');
 
 // ── Regex ─────────────────────────────────────────────────────────────────────
-const INVITE_REGEX = /discord(?:\.gg|(?:app)?\.com\/invite)\/[a-zA-Z0-9-]+/i;
+const INVITE_REGEX = /discord(?:\.gg|(?:app)?\.com\/invite)\/([a-zA-Z0-9-]+)/i;
 const URL_REGEX = /https?:\/\/([a-zA-Z0-9.-]+)/gi;
 
 // ── Hilfsfunktionen ───────────────────────────────────────────────────────────
@@ -42,21 +41,35 @@ function isAllowedUrl(url) {
 }
 
 /**
- * Gibt zurück ob die Nachricht einen stillen Link-Verstoß enthält
- * (löschen + Info, aber KEIN Warn).
- * @returns {{ type: 'invite'|'link', reason: string } | null}
+ * Prüft ob ein Invite-Code zum eigenen Server gehört.
+ * Gibt true zurück wenn ja (→ durchlassen), false wenn fremder Server (→ Warn).
+ * @param {import('discord.js').Client} client
+ * @param {string} code
+ * @returns {Promise<boolean>}
  */
-function detectLinkViolation(content) {
-  if (BLOCK_INVITES && INVITE_REGEX.test(content)) {
-    return { type: 'invite', reason: 'Discord-Invite-Links sind hier nicht erlaubt.' };
+async function isOwnServerInvite(client, code) {
+  try {
+    const invite = await client.fetchInvite(code);
+    return invite?.guild?.id === OWN_GUILD_ID;
+  } catch {
+    // Invite ungültig oder abgelaufen → als fremd behandeln
+    return false;
   }
+}
 
-  if (BLOCK_EXTERNAL_LINKS) {
-    const urls = [...content.matchAll(URL_REGEX)].map((m) => m[0]);
-    const blockedUrl = urls.find((url) => !isAllowedUrl(url));
-    if (blockedUrl) {
-      return { type: 'link', reason: 'Externe Links sind hier nicht erlaubt.' };
-    }
+/**
+ * Gibt zurück ob die Nachricht einen stillen Link-Verstoß enthält
+ * (löschen + Info, aber KEIN Warn). Nur für externe Links — Invites
+ * werden separat geprüft da sie async sind.
+ * @returns {{ type: 'link', reason: string } | null}
+ */
+function detectExternalLink(content) {
+  if (!BLOCK_EXTERNAL_LINKS) return null;
+
+  const urls = [...content.matchAll(URL_REGEX)].map((m) => m[0]);
+  const blockedUrl = urls.find((url) => !isAllowedUrl(url));
+  if (blockedUrl) {
+    return { type: 'link', reason: 'Externe Links sind hier nicht erlaubt.' };
   }
 
   return null;
@@ -115,13 +128,12 @@ async function handleSpam(client, message, spam) {
 
   await message.delete().catch(() => {});
 
-  // Nur Warns der letzten 30 Tage zählen
+  // Alle Warns zählen (kein Verfall)
   const warnCount = await Infraction.count({
     where: {
       guildId: guild.id,
       userId: user.id,
       type: 'warn',
-      createdAt: { [Op.gte]: new Date(Date.now() - WARN_EXPIRY_MS) },
     },
   });
 
@@ -254,16 +266,37 @@ module.exports = async (client, message) => {
     if (!message.guild || !message.member) return;
     if (isExempt(message.member)) return;
 
-    const normalizedContent = message.content.toLowerCase().trim();
+    const { content } = message;
+    const normalizedContent = content.toLowerCase().trim();
 
-    // 1. Link-Check (still, kein Warn)
-    const linkViolation = detectLinkViolation(message.content);
+    // 1. Invite-Check
+    if (BLOCK_INVITES) {
+      const inviteMatch = content.match(INVITE_REGEX);
+      if (inviteMatch) {
+        const code = inviteMatch[1];
+        const ownServer = await isOwnServerInvite(client, code);
+
+        if (!ownServer) {
+          // Fremder Server → Warn
+          await handleSpam(client, message, {
+            type: 'invite',
+            reason: 'Fremder Discord-Invite-Link',
+          });
+          return;
+        }
+        // Eigener Server → durchlassen, nichts tun
+        return;
+      }
+    }
+
+    // 2. Externer Link-Check (still, kein Warn)
+    const linkViolation = detectExternalLink(content);
     if (linkViolation) {
       await handleLinkViolation(message, linkViolation);
       return;
     }
 
-    // 2. Spam-Check (Warn + Eskalation)
+    // 3. Spam-Check (Flood / Duplicate / Mention → Warn + Eskalation)
     const stats = trackMessage(message.guild.id, message.author.id, normalizedContent);
     const spam = detectSpam(message, stats);
     if (spam) {
