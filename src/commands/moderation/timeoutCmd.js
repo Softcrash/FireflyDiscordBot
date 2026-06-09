@@ -35,6 +35,8 @@ module.exports = {
     ),
   userPermissions: [],
   botPermissions: [PermissionFlagsBits.ModerateMembers],
+  testMode: false,
+  devOnly: false,
 
   run: async (client, interaction) => {
     await interaction.deferReply(EPHEMERAL);

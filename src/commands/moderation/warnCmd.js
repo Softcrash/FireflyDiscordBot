@@ -27,6 +27,8 @@ module.exports = {
     ),
   userPermissions: [],
   botPermissions: [],
+  testMode: false,
+  devOnly: false,
 
   run: async (client, interaction) => {
     await interaction.deferReply(EPHEMERAL);
