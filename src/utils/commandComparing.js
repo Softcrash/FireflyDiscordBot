@@ -10,8 +10,8 @@ const normalizeOption = (option) => ({
   name: option.name,
   description: option.description,
   required: option.required ?? false,
-  options: option.options ? option.options.map(normalizeOption) : undefined,
-  choices: option.choices
+  options: option.options?.length ? option.options.map(normalizeOption) : undefined,
+  choices: option.choices?.length
     ? option.choices.map((c) => ({ name: c.name, value: c.value }))
     : undefined,
 });
