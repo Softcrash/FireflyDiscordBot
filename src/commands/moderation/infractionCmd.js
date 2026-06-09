@@ -10,7 +10,6 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('infractions')
     .setDescription('Zeigt das Strafregister eines Users.')
-    .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .addUserOption((opt) =>
       opt.setName('user').setDescription('Wessen Strafregister möchtest du sehen?').setRequired(true)
     ),
@@ -20,7 +19,7 @@ module.exports = {
   devOnly: false,
 
   run: async (client, interaction) => {
-    // Wichtig: NICHT deferReply nutzen. Das IsComponentsV2-Flag muss beim ersten
+    // Wichtig: NICHT deferReply nutzen. Das zIsComponentsV2-Flag muss beim ersten
     // Senden gesetzt werden und kann nachträglich nicht hinzugefügt werden — also
     // direkt mit reply() antworten. Die DB-Queries sind klein und schnell genug.
 
