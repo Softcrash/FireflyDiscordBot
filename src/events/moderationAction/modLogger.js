@@ -5,6 +5,7 @@ const ACTION_META = {
   ban: { color: 0xfb2f61, title: '🔨 Ban', verb: 'gebannt' },
   timeout: { color: 0xf39c12, title: '⏱️ Timeout', verb: 'getimeoutet' },
   warn: { color: 0xffcc4d, title: '⚠️ Warn', verb: 'verwarnt' },
+  kick: { color: 0xe74c3c, title: '👢 Kick', verb: 'gekickt' },
 };
 
 /**
@@ -16,7 +17,7 @@ const ACTION_META = {
  *     guild,         // Guild
  *     moderator,     // GuildMember
  *     targetUser,    // User
- *     type,          // 'ban' | 'timeout' | 'warn'
+ *     type,          // 'ban' | 'timeout' | 'warn' | 'kick'
  *     reason,        // string
  *     durationHuman, // string | null (z.B. "2 Stunden")
  *     expiresAt,     // Date | null
