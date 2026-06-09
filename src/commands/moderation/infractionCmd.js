@@ -16,6 +16,8 @@ module.exports = {
     ),
   userPermissions: [],
   botPermissions: [],
+  testMode: false,
+  devOnly: false,
 
   run: async (client, interaction) => {
     // Wichtig: NICHT deferReply nutzen. Das IsComponentsV2-Flag muss beim ersten

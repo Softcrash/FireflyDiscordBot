@@ -27,9 +27,10 @@ module.exports = {
           "Messages to be deleted from a specific user in a channel."
         )
     ),
-  userPermissions: [PermissionFlagsBits.ManageMessages],
+  userPermissions: [],
   botPermissions: [PermissionFlagsBits.ManageMessages],
   testMode: false,
+  devOnly: false,
 
   run: async (client, interaction) => {
     const { options, channel } = interaction;
