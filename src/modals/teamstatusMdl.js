@@ -1,10 +1,15 @@
+'use strict';
+
+// FILE: src/modals/teamstatus.js
 const { MessageFlags } = require('discord.js');
-const panel = require('../utils/teamstatusPanel');
+const panel = require('../utils/teamstatusPanel'); // Pfad ggf. anpassen
 
 module.exports = {
-  customId: panel.ID.MODAL,
+  customId: panel.ID.MODAL, // "teamstatus:abmelden:modal"
 
-  run: async (interaction, client) => {
+  // Signatur an Modal-Validator angepasst: (client, interaction)
+  run: async (client, interaction) => {
+    // Modal wurde aus einem Button geöffnet → update() ist verfügbar
     if (!interaction.isFromMessage()) {
       return interaction.reply({
         content: '❌ Das Panel konnte nicht aktualisiert werden.',
@@ -41,6 +46,6 @@ module.exports = {
     const state = panel.parsePanelState(interaction.message);
     state.set(interaction.user.id, { status: 'ABGEMELDET', period });
 
-    return interaction.update(panel.panelPayload(state));
+    return interaction.update(panel.panelPayload(state, { withFlags: false }));
   },
 };
