@@ -29,7 +29,7 @@ module.exports = {
   testMode: true,
   devOnly: false,
 
-  run: async (client, interaction) => {gi
+  run: async (client, interaction) => {
     await interaction.deferReply(EPHEMERAL);
 
     if (!(await canUseCommand(interaction.member, 'warn'))) {
