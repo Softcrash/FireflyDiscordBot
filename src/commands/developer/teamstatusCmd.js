@@ -1,5 +1,3 @@
-'use strict';
-
 // FILE: src/commands/developer/teamstatusCmd.js
 const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const panel = require('../../utils/teamstatusPanel');
@@ -34,7 +32,7 @@ module.exports = {
     const { roleIds, members } = collected;
     if (!roleIds.length) {
       return interaction.editReply({
-        content: '⚠️ Es sind keine Teamrollen hinterlegt. Trage sie in `getTeamRoleIds` (teamstatusPanel.js) ein.',
+        content: '❌ Es ist keine Teamlisten-Konfiguration vorhanden. Richte sie mit `/teamlist-setup` ein.',
       });
     }
 
