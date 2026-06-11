@@ -1,5 +1,3 @@
-'use strict';
-
 // FILE: src/buttons/teamstatus.js
 const { MessageFlags } = require('discord.js');
 const panel = require('../utils/teamstatusPanel'); // Pfad ggf. anpassen
@@ -54,13 +52,22 @@ async function handleRefresh(interaction) {
     collected = await panel.collectTeamMembers(interaction.guild);
   } catch (err) {
     console.error('[teamstatus] Mitglieder-Fetch fehlgeschlagen:', err);
+    panel.clearRefreshCooldown(guildId);
     return interaction.followUp({
       content: '⚠️ Konnte die Mitglieder gerade nicht laden (evtl. Rate-Limit). Bitte gleich erneut versuchen.',
       flags: MessageFlags.Ephemeral,
     });
   }
 
-  const { members } = collected;
+  const { roleIds, members } = collected;
+
+  if (!roleIds.length) {
+    panel.clearRefreshCooldown(guildId);
+    return interaction.followUp({
+      content: '❌ Es ist keine Teamlisten-Konfiguration (mehr) vorhanden. Richte sie mit `/teamlist-setup` neu ein.',
+      flags: MessageFlags.Ephemeral,
+    });
+  }
 
   // Bestehende Status übernehmen, neue Teamler ergänzen, ausgetretene fallen weg
   const next = new Map();

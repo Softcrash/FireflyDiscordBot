@@ -1,5 +1,3 @@
-'use strict';
-
 // FILE: src/modals/teamstatus.js
 const { MessageFlags } = require('discord.js');
 const panel = require('../utils/teamstatusPanel'); // Pfad ggf. anpassen

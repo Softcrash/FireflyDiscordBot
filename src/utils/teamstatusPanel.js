@@ -1,5 +1,3 @@
-'use strict';
-
 // ════════════════════════════════════════════════════════════════════
 //  Teamstatus-Panel – gemeinsame Logik (Components V2, ohne DB)
 //  ------------------------------------------------------------------
@@ -54,25 +52,18 @@ const ID = {
   MODAL_BIS: 'bis',
 };
 
-// ┌────────────────────────────────────────────────────────────────────┐
-// │ ANPASSEN: Teamrollen-Quelle                                          │
-// │ ------------------------------------------------------------------   │
-// │ Liefert die Rollen-IDs, die als „Team" gelten. Standardmäßig aus     │
-// │ der untenstehenden Map. Ersetze den Funktionskörper, um stattdessen  │
-// │ deine bestehende Teamlisten-Config (DB) abzufragen, z. B.:           │
-// │                                                                      │
-// │   const cfg = await TeamlistConfig.findAll({ where: { guildId } });  │
-// │   return cfg.map(r => r.roleId);                                     │
-// └────────────────────────────────────────────────────────────────────┘
-const TEAM_ROLE_IDS = {
-  // 'GUILD_ID': ['ROLLEN_ID_1', 'ROLLEN_ID_2', ...],
-  // Beispiel:
-  // '123456789012345678': ['111111111111111111', '222222222222222222'],
-};
+const { TeamlistSetup } = require('../database/registry');
 
+// ─── Teamrollen aus der Teamlisten-Konfiguration (DB) ────────────────
+// Nutzt dieselbe Quelle wie die Team-Liste → beide Panels bleiben
+// automatisch synchron. Keine Konfig vorhanden → leeres Array, die
+// Aufrufer melden das dann sauber an den Nutzer zurück.
 async function getTeamRoleIds(guild) {
   if (!guild?.id) throw new Error('getTeamRoleIds: guild fehlt – Handler-Signatur prüfen (client/interaction vertauscht?)');
-  return TEAM_ROLE_IDS[guild.id] ?? [];
+
+  const setup = await TeamlistSetup.findOne({ where: { guildId: guild.id } });
+  if (!setup || !Array.isArray(setup.roleIds)) return [];
+  return setup.roleIds;
 }
 
 // ─── Mitglieder-Fetch mit TTL-Cache (Rate-Limit-Schutz) ──────────────
@@ -96,6 +87,11 @@ function getRefreshCooldown(guildId) {
 }
 function setRefreshCooldown(guildId) {
   refreshCooldown.set(guildId, Date.now() + REFRESH_COOLDOWN);
+}
+// Cooldown zurücknehmen, wenn der Refresh fehlschlägt – sonst „kostet"
+// ein Fehlversuch die volle Wartezeit
+function clearRefreshCooldown(guildId) {
+  refreshCooldown.delete(guildId);
 }
 
 // ─── Teamler einsammeln (dedupliziert über alle Rollen) ──────────────
@@ -317,5 +313,5 @@ module.exports = {
   parsePanelState, parseGermanDate, formatDate, buildPeriodLabel,
   buildPanel, buildAbmeldenModal, buildMemberBlock, formatLine,
   isTeamMember, panelPayload,
-  getRefreshCooldown, setRefreshCooldown,
+  getRefreshCooldown, setRefreshCooldown, clearRefreshCooldown,
 };
