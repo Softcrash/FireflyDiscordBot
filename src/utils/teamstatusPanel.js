@@ -71,6 +71,7 @@ const TEAM_ROLE_IDS = {
 };
 
 async function getTeamRoleIds(guild) {
+  if (!guild?.id) throw new Error('getTeamRoleIds: guild fehlt – Handler-Signatur prüfen (client/interaction vertauscht?)');
   return TEAM_ROLE_IDS[guild.id] ?? [];
 }
 
@@ -297,13 +298,17 @@ async function isTeamMember(interaction) {
   return roleIds.some(rid => interaction.member.roles.cache.has(rid));
 }
 
-// ─── Gemeinsamer Payload (reply & update) ────────────────────────────
-function panelPayload(state) {
-  return {
+// ─── Gemeinsamer Payload ─────────────────────────────────────────────
+// withFlags: true  → initiale Sends (Flag muss gesetzt werden)
+// withFlags: false → Edits auf bestehende CV2-Nachricht (Flag liegt
+//                    bereits auf der Nachricht, z. B. nach deferUpdate)
+function panelPayload(state, { withFlags = true } = {}) {
+  const payload = {
     components: [buildPanel(state)],
-    flags: MessageFlags.IsComponentsV2,
     allowedMentions: { parse: [] },
   };
+  if (withFlags) payload.flags = MessageFlags.IsComponentsV2;
+  return payload;
 }
 
 module.exports = {
