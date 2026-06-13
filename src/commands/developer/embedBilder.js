@@ -69,7 +69,7 @@ module.exports = {
   devOnly: true,
   run: async (client, interaction) => {
     const regelnTeil1 = new EmbedBuilder()
-      .setTitle('<a:2c_butterfly:1510198875116539989> Dreamy Garden – Regeln')
+      .setTitle('<a:FFY_71560flowersandpetals:1507024021726957589> Regelwerk - Firefly Paradise')
       .setDescription(REGELN_TEIL_1)
       .setColor(0x5865f2);
 
