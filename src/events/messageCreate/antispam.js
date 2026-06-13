@@ -30,6 +30,8 @@ const URL_REGEX = /https?:\/\/([a-zA-Z0-9.-]+)/gi;
 // ── Hilfsfunktionen ───────────────────────────────────────────────────────────
 
 function isExempt(member) {
+  const exemptRoles = ["1501651717324935408", "1491474814546874609"];
+
   if (member.user.bot) return true;
   if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
   if (member.permissions.has(PermissionFlagsBits.ModerateMembers)) return true;
