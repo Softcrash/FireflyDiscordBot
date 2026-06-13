@@ -33,6 +33,7 @@ function isExempt(member) {
   if (member.user.bot) return true;
   if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
   if (member.permissions.has(PermissionFlagsBits.ModerateMembers)) return true;
+  if (exemptRoles.some(roleId => member.roles.has(roleId))) return true;
   return false;
 }
 
