@@ -264,7 +264,7 @@ function buildPanel(state) {
 function buildAbmeldenModal() {
   const von = new TextInputBuilder()
     .setCustomId(ID.MODAL_VON)
-    .setLabel('Von (TT.MM.JJJJ) – leer = ab sofort')
+    .setLabel('Von (TT.MM.JJJJ) [leer = ab sofort]')
     .setStyle(TextInputStyle.Short)
     .setPlaceholder('z. B. 15.06.2026')
     .setRequired(false)
@@ -272,10 +272,10 @@ function buildAbmeldenModal() {
 
   const bis = new TextInputBuilder()
     .setCustomId(ID.MODAL_BIS)
-    .setLabel('Bis (TT.MM.JJJJ) – optional')
+    .setLabel('Bis (TT.MM.JJJJ)')
     .setStyle(TextInputStyle.Short)
     .setPlaceholder('z. B. 20.06.2026')
-    .setRequired(false)
+    .setRequired(true)
     .setMaxLength(10);
 
   return new ModalBuilder()
