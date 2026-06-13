@@ -20,11 +20,8 @@ module.exports = {
   // Eigene Guild-ID — Invites zu diesem Server werden NICHT gelöscht/gewarnt
   OWN_GUILD_ID: '1491382344655962135',
 
-  // Fremde Discord-Invite-Links → löschen + Warn
   BLOCK_INVITES: true,
-  // Externe Links → löschen + stille Info (kein Warn)
   BLOCK_EXTERNAL_LINKS: true,
-  // Whitelisted Domains – diese Links dürfen gepostet werden
   ALLOWED_DOMAINS: [
     'discord.com',
     'discordapp.com',
@@ -45,11 +42,21 @@ module.exports = {
   // ── Tracker Cleanup ──────────────────────────────────────────────────────────
   CLEANUP_INTERVAL_MS: 60_000,
 
-  // ── Eskalations-Stufen ───────────────────────────────────────────────────────
-  // Warns gelten für immer (kein Verfall)
+  // ── Eskalation / Aktionen ────────────────────────────────────────────────────
+  // Jeder Spam-Verstoß: Verwarnung + kurzer Timeout (Puffer) + Spam löschen.
+  // Warns gelten für immer (kein Verfall). Ab KICK_ON_WARN wird gekickt.
+  SPAM_TIMEOUT_MS: 10_000, // 10s Stummschaltung pro Verstoß (Puffer)
+  SPAM_TIMEOUT_HUMAN: '10 Sekunden',
+  KICK_ON_WARN: 4, // ab diesem Verstoß -> Kick
 
-  TIMEOUT_ON_WARN: 3,
-  TIMEOUT_DURATION_MS: 10 * 60 * 1000,
-  TIMEOUT_DURATION_HUMAN: '10 Minuten',
-  KICK_ON_WARN: 4,
+
+ // Nur AutoMod-Warns innerhalb dieses Fensters zählen für Eskalation/Kick.
+  // Ältere Warns + manuelle Mod-Warns bleiben im Register, lösen aber keinen Auto-Kick aus.
+  WARN_WINDOW_MS: 7 * 24 * 60 * 60 * 1000, // 7 Tage
+  WARN_WINDOW_HUMAN: '7 Tage', // bei Änderung von WARN_WINDOW_MS mit anpassen
+
+  
+  // Synchroner Lock gegen Doppel-Strafen durch Discord-Latenz/Bursts.
+  // Sollte <= SPAM_TIMEOUT_MS sein, damit nach dem Timeout ein neuer Verstoß greift.
+  ACTION_LOCK_MS: 5_000,
 };
