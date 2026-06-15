@@ -26,7 +26,7 @@ LogSetting.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    webhookTooken: {
+    webhookToken: {
       type: DataTypes.STRING,
       allowNull: true,
     },
