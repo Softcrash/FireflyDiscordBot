@@ -1,5 +1,5 @@
 const { WebhookClient, PermissionFlagsBits } = require('discord.js');
-const { LogSetting } = require('../../,,/database/registry');
+const { LogSetting } = require('../../../database/registry');
 
 const WEBHOOK_NAME = 'Firefly Logs';
 
