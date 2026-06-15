@@ -4,9 +4,13 @@ const {
   ID,
   getDraft,
   clearDraftChannel,
-} = require('../utils/moderation/logging/loggingPanel');
-const { setLogChannel, MissingWebhookPermission } = require('../utils/moderation/logging/logManager');
-const { CATEGORIES } = require('../utils/moderation/logging/logConstants');
+} = require('../utils/logging/loggingPanel');
+const {
+  setLogChannel,
+  MissingWebhookPermission,
+  WebhookTokenUnavailable,
+} = require('../utils/logging/logManager');
+const { CATEGORIES } = require('../utils/logging/logConstants');
 
 module.exports = {
   customId: ID.CONFIRM,
@@ -23,6 +27,7 @@ module.exports = {
       });
     }
 
+    // Webhook-Erstellung + DB-Schreibvorgang können kurz dauern → erst deferren.
     await interaction.deferUpdate();
 
     const channel =
@@ -42,11 +47,14 @@ module.exports = {
     try {
       await setLogChannel(interaction.guild, draft.category, channel);
     } catch (err) {
-      const note =
-        err instanceof MissingWebhookPermission
-          ? `\`❌\` Mir fehlt in ${channel} die Berechtigung **Webhooks verwalten**.`
-          : '`❌` Konnte den Webhook nicht erstellen. Bitte später erneut versuchen.';
-      if (!(err instanceof MissingWebhookPermission)) {
+      let note;
+      if (err instanceof MissingWebhookPermission) {
+        note = `\`❌\` Mir fehlt in ${channel} die Berechtigung **Webhooks verwalten**.`;
+      } else if (err instanceof WebhookTokenUnavailable) {
+        note =
+          '`❌` Discord hat kein Webhook-Token geliefert. Bitte erneut versuchen oder einen anderen Channel wählen.';
+      } else {
+        note = '`❌` Konnte den Webhook nicht erstellen. Bitte später erneut versuchen.';
         console.error('[logging] setLogChannel:', err);
       }
       const panel = await buildLoggingPanel(interaction.guild, draft, { note, color: 0xfb2f61 });
