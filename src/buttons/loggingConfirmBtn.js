@@ -4,12 +4,12 @@ const {
   ID,
   getDraft,
   clearDraftChannel,
-} = require('../utils/logging/loggingPanel');
+} = require('../utils/moderation/logging/loggingPanel');
 const {
   setLogChannel,
   MissingWebhookPermission,
   WebhookTokenUnavailable,
-} = require('../utils/logging/logManager');
+} = require('../utils/moderation/logging/logManager');
 const { CATEGORIES } = require('../utils/moderation/logging/logConstants');
 
 module.exports = {
