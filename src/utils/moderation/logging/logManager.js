@@ -1,5 +1,5 @@
 const { WebhookClient, PermissionFlagsBits } = require('discord.js');
-const { LogSetting } = require('../../../database/registry');
+const { LogSetting } = require('../../,,/database/registry');
 
 const WEBHOOK_NAME = 'Firefly Logs';
 
@@ -10,6 +10,16 @@ class MissingWebhookPermission extends Error {
   constructor() {
     super('Missing ManageWebhooks permission');
     this.name = 'MissingWebhookPermission';
+  }
+}
+
+// Discord liefert das Token application-eigener Webhooks nur an die erstellende
+// App — und nicht immer am frisch erstellten Objekt. Wenn wir es weder direkt
+// noch per fetchWebhooks bekommen, ist der Webhook unbrauchbar.
+class WebhookTokenUnavailable extends Error {
+  constructor() {
+    super('Webhook token unavailable');
+    this.name = 'WebhookTokenUnavailable';
   }
 }
 
@@ -83,7 +93,7 @@ async function getConfig(guildId) {
  * Setzt den Zielchannel einer Kategorie:
  *  - prüft die ManageWebhooks-Berechtigung im Zielchannel
  *  - entfernt einen evtl. alten Webhook der Kategorie (sauberes Reconfigure)
- *  - erstellt einen neuen Webhook und persistiert id + token
+ *  - erstellt einen neuen Webhook, sichert das Token und persistiert id + token
  */
 async function setLogChannel(guild, category, channel) {
   const me = guild.members.me ?? (await guild.members.fetchMe());
@@ -93,9 +103,24 @@ async function setLogChannel(guild, category, channel) {
 
   const existing = await LogSetting.findOne({ where: { guildId: guild.id, category } });
 
-  if (existing?.webhookId && existing?.webhookToken) {
-    const old = new WebhookClient({ id: existing.webhookId, token: existing.webhookToken });
-    await old.delete('Logging neu konfiguriert').catch(() => {});
+  // Alten Webhook der Kategorie entfernen (sauberes Reconfigure).
+  if (existing?.webhookId) {
+    if (existing.webhookToken) {
+      const old = new WebhookClient({ id: existing.webhookId, token: existing.webhookToken });
+      await old.delete('Logging neu konfiguriert').catch(() => {});
+    } else if (existing.channelId) {
+      // Kein Token gespeichert → per Bot-Auth im (ggf. alten) Channel löschen.
+      const oldChannel =
+        guild.channels.cache.get(existing.channelId) ??
+        (await guild.channels.fetch(existing.channelId).catch(() => null));
+      if (oldChannel) {
+        const hooks = await oldChannel.fetchWebhooks().catch(() => null);
+        await hooks
+          ?.get(existing.webhookId)
+          ?.delete('Logging neu konfiguriert')
+          .catch(() => {});
+      }
+    }
   }
 
   const webhook = await channel.createWebhook({
@@ -103,11 +128,30 @@ async function setLogChannel(guild, category, channel) {
     reason: `Logging: ${category}`,
   });
 
+  // Token ermitteln. Bei application-eigenen Webhooks ist webhook.token am frisch
+  // erstellten Objekt nicht immer gesetzt → erneut über fetchWebhooks laden.
+  let token = webhook.token ?? null;
+  if (!token) {
+    const hooks = await channel.fetchWebhooks().catch(() => null);
+    token = hooks?.get(webhook.id)?.token ?? null;
+    console.warn(
+      `[logging] createWebhook ohne Token (id=${webhook.id}). ` +
+        `fetchWebhooks-Fallback: ${token ? 'Token erhalten ✅' : 'weiterhin kein Token ❌'}`
+    );
+  }
+
+  // Ohne Token ist der Webhook unbrauchbar → aufräumen und Fehler melden,
+  // statt still NULL zu speichern (das würde stilles Nicht-Loggen verursachen).
+  if (!token) {
+    await webhook.delete('Kein Token erhalten').catch(() => {});
+    throw new WebhookTokenUnavailable();
+  }
+
   if (existing) {
     await existing.update({
       channelId: channel.id,
       webhookId: webhook.id,
-      webhookToken: webhook.token,
+      webhookToken: token,
       enabled: true,
     });
   } else {
@@ -116,7 +160,7 @@ async function setLogChannel(guild, category, channel) {
       category,
       channelId: channel.id,
       webhookId: webhook.id,
-      webhookToken: webhook.token,
+      webhookToken: token,
       enabled: true,
     });
   }
@@ -130,5 +174,6 @@ module.exports = {
   getConfig,
   setLogChannel,
   MissingWebhookPermission,
+  WebhookTokenUnavailable,
   WEBHOOK_NAME,
 };
