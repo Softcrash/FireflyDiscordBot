@@ -10,7 +10,7 @@ const {
   MissingWebhookPermission,
   WebhookTokenUnavailable,
 } = require('../utils/logging/logManager');
-const { CATEGORIES } = require('../utils/logging/logConstants');
+const { CATEGORIES } = require('../utils/moderation/logging/logConstants');
 
 module.exports = {
   customId: ID.CONFIRM,
