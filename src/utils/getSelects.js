@@ -1,3 +1,4 @@
+// FILE: src/utils/getSelects.js
 const path = require("path");
 const getAllFiles = require("./getAllFiles");
 
@@ -8,8 +9,13 @@ module.exports = (exceptions = []) => {
   for (const selectFile of selectFiles) {
     const selectObject = require(selectFile);
 
-    if (exceptions.includes(selectObject.name)) continue;
-    selects.push(selectObject);
+    // Unterstützt sowohl einzelne Objekte als auch Arrays von Objekten
+    const items = Array.isArray(selectObject) ? selectObject : [selectObject];
+
+    for (const item of items) {
+      if (exceptions.includes(item.name)) continue;
+      selects.push(item);
+    }
   }
 
   return selects;
