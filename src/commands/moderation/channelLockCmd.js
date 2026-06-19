@@ -37,8 +37,8 @@ module.exports = {
 
       await interaction.reply({
         content: lock
-          ? `🔒 ${channel} wurde gesperrt – @everyone kann hier nicht mehr schreiben.`
-          : `🔓 ${channel} wurde entsperrt – @everyone kann hier wieder schreiben.`,
+          ? `🔒 ${channel} wurde gesperrt – @everyone woran hats gelegen...`
+          : `🔓 ${channel} wurde entsperrt – @everyone nun kanns wieder losgehen ihr lieben!`,
         allowedMentions: { parse: [] },
       });
     } catch (err) {
