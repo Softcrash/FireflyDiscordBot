@@ -64,6 +64,17 @@ module.exports = {
     ],
     buttons: ['ticketClose'],
   },
+  admin: {
+    teamRoleIds: ['1491473403196997773', '1491473192055865478', '1491399551498719352'],
+    icon: '📓',
+    title: 'Admin Report',
+    color: 0xf39c12,
+    threadPrefix: 'admin-report',
+    fields: [
+      { inputId: 'admin_report', embedName: '📝 Anliegen', inline: false },
+    ],
+    buttons: ['ticketClose'],
+  },
   support: {
     teamRoleIds: ['1491474529439187125', '1491473710471843990', '1491474312883077402'],
     icon: '✉️',

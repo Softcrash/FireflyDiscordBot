@@ -192,6 +192,24 @@ module.exports = {
         break;
       }
 
+      case 'adminSlct': {
+        const themaInput = new TextInputBuilder()
+          .setCustomId('admin_report')
+          .setLabel('Worum geht es?')
+          .setStyle(TextInputStyle.Paragraph)
+          .setPlaceholder('z.B. Teamler hat sich falsch benommen')
+          .setRequired(true)
+          .setMaxLength(500);
+
+        modal = new ModalBuilder()
+          .setCustomId('ticket_modal_admin')
+          .setTitle('📓 Admin Report')
+          .addComponents(
+            new ActionRowBuilder().addComponents(themaInput),
+          );
+        break;
+      }
+
       case 'partnerSlct': {
         const serverInput = new TextInputBuilder()
           .setCustomId('partnerschaft_server')
