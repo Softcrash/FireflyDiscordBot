@@ -33,6 +33,11 @@ module.exports = {
       .setPlaceholder('📂 Kategorie auswählen...')
       .addOptions(
         new StringSelectMenuOptionBuilder()
+          .setLabel('Admin Ticket')
+          .setDescription('Administrative Angelegenheiten')
+          .setValue('adminSlct')
+          .setEmoji('📓'),
+        new StringSelectMenuOptionBuilder()
           .setLabel('Dreamy Garden')
           .setDescription('Komm in unseren Dreamy Garden')
           .setValue('comfySlct')
