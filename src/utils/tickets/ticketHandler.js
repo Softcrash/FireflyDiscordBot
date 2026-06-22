@@ -165,6 +165,7 @@ async function getOpenTicketInCategory(guild, userId, categoryKey, ticketChannel
     const { threads } = await ticketChannel.threads.fetch();
 
     const categoryMap = {
+      'adminSlct': 'admin',
       'comfySlct': 'comfy',
       'application': 'application',
       'support': 'support',
