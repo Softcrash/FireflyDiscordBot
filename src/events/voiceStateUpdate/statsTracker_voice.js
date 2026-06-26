@@ -13,7 +13,7 @@ const { VoiceStat } = require('../../database/registry');
 const joinMap = new Map();
 
 /**
- * Schreibt abgelaufene Voice-Zeit in die DB.
+ * Schreibt abgelaufene Voice-Zeit atomar in die DB (race-condition-sicher).
  * @param {string} guildId
  * @param {string} userId
  * @param {string} channelId
@@ -29,14 +29,28 @@ async function flushVoiceTime(guildId, userId, channelId, joinedAt, leftAt = new
   // Einfache Variante: alles auf den Tag des Joins buchen (reicht für ~99% der Fälle).
   const date = joinedAt.toISOString().slice(0, 10);
 
-  const [row, created] = await VoiceStat.findOrCreate({
+  // Atomares increment statt read-modify-write — verhindert Lost Updates,
+  // wenn z.B. zwei Voice-Events für denselben User fast gleichzeitig
+  // verarbeitet werden (Channel-Wechsel + Recovery, Doppel-Events etc.).
+  const [affectedRows] = await VoiceStat.increment('minutes', {
+    by: totalMinutes,
     where: { guildId, userId, channelId, date },
-    defaults: { minutes: totalMinutes },
   });
 
-  if (!created) {
-    row.minutes += totalMinutes;
-    await row.save();
+  if (affectedRows === 0) {
+    try {
+      await VoiceStat.create({ guildId, userId, channelId, date, minutes: totalMinutes });
+    } catch (err) {
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        // Paralleler Request hat die Zeile inzwischen angelegt → nachträglich erhöhen.
+        await VoiceStat.increment('minutes', {
+          by: totalMinutes,
+          where: { guildId, userId, channelId, date },
+        });
+      } else {
+        throw err;
+      }
+    }
   }
 }
 
@@ -48,9 +62,9 @@ module.exports = async (client, oldState, newState) => {
     // Bot-Accounts ignorieren
     if (newState.member?.user?.bot) return;
 
-    const key       = `${guildId}:${userId}`;
-    const oldCh     = oldState.channelId;
-    const newCh     = newState.channelId;
+    const key   = `${guildId}:${userId}`;
+    const oldCh = oldState.channelId;
+    const newCh = newState.channelId;
 
     // ── User hat Voice betreten ──────────────────────────────────────────────
     if (!oldCh && newCh) {
@@ -62,6 +76,9 @@ module.exports = async (client, oldState, newState) => {
     if (oldCh && !newCh) {
       const entry = joinMap.get(key);
       if (entry) {
+        // Eintrag SOFORT entfernen, bevor await — verhindert, dass ein zweites,
+        // fast gleichzeitig eintreffendes Event denselben Eintrag nochmal liest
+        // und doppelt verbucht.
         joinMap.delete(key);
         await flushVoiceTime(guildId, userId, entry.channelId, entry.joinedAt);
       }
@@ -72,11 +89,14 @@ module.exports = async (client, oldState, newState) => {
     if (oldCh && newCh && oldCh !== newCh) {
       const entry = joinMap.get(key);
       const now   = new Date();
+
+      // Auch hier: neuen Eintrag SOFORT setzen (synchron), bevor await läuft —
+      // damit ein zweites Event in der Zwischenzeit nicht den alten Channel sieht.
+      joinMap.set(key, { channelId: newCh, joinedAt: now });
+
       if (entry) {
         await flushVoiceTime(guildId, userId, entry.channelId, entry.joinedAt, now);
       }
-      // Neu-Eintrag für neuen Channel
-      joinMap.set(key, { channelId: newCh, joinedAt: now });
     }
   } catch (err) {
     console.error('[statsTracker/voice] Fehler:', err);

@@ -11,15 +11,33 @@ module.exports = async (client, message) => {
     const channelId = message.channel.id;
     const date      = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
-    // Upsert: existierenden Eintrag um 1 erhöhen oder neu anlegen
-    const [row, created] = await MessageStat.findOrCreate({
+    // Zuerst versuchen den Zähler atomar zu erhöhen (UPDATE ... SET count = count + 1).
+    // Das ist race-condition-sicher: die Erhöhung passiert direkt in der DB,
+    // es wird nie ein "alter" Wert gelesen und versehentlich überschrieben.
+    const [affectedRows] = await MessageStat.increment('count', {
+      by: 1,
       where: { guildId, userId, channelId, date },
-      defaults: { count: 1 },
     });
 
-    if (!created) {
-      row.count += 1;
-      await row.save();
+    // Wenn affectedRows === 0, existierte die Zeile noch nicht → anlegen.
+    // findOrCreate kann hier theoretisch ebenfalls doppelt anlegen, wenn zwei
+    // Requests gleichzeitig "noch nicht vorhanden" sehen — das fängt der
+    // unique Index (guildId, userId, channelId, date) auf der DB-Ebene ab.
+    if (affectedRows === 0) {
+      try {
+        await MessageStat.create({ guildId, userId, channelId, date, count: 1 });
+      } catch (err) {
+        // Unique-Constraint-Verletzung = paralleler Request hat die Zeile
+        // bereits angelegt → einfach nachträglich erhöhen.
+        if (err.name === 'SequelizeUniqueConstraintError') {
+          await MessageStat.increment('count', {
+            by: 1,
+            where: { guildId, userId, channelId, date },
+          });
+        } else {
+          throw err;
+        }
+      }
     }
   } catch (err) {
     console.error('[statsTracker/message] Fehler:', err);
