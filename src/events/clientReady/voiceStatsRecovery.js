@@ -1,7 +1,7 @@
 // Beim Bot-Start: alle User die bereits in Voice sitzen, in die joinMap eintragen.
 // So gehen keine Minuten verloren wenn der Bot neustartet.
 
-const { joinMap } = require('../voiceStateUpdate/statsTracker');
+const { joinMap } = require('../voiceStateUpdate/statsTracker_voice');
 
 module.exports = async (client) => {
   try {
