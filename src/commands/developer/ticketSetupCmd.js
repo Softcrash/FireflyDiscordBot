@@ -18,6 +18,8 @@ module.exports = {
   userPermissions: [PermissionFlagsBits.Administrator],
   botPermissions: [],
   devOnly: true,
+  category: 'tickets',
+
   run: async (client, interaction) => {
     const embed = new EmbedBuilder()
       .setTitle('🎫 Support-Center')

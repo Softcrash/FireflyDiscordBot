@@ -1,9 +1,25 @@
+// FILE: src/utils/plugins/pluginState.js
+//
+// In-Memory-Cache der Plugin-Einstellungen mit Write-Through auf die DB.
+// Pattern wie im Stats-System: flat Map, Key = `${guildId}:${pluginId}`.
+//
+// Sparse Storage: Existiert keine Row, gilt defaultEnabled aus der Registry.
+// Rows entstehen erst beim ersten Toggle — immer über findOrCreate.
+//
+// Hinweis Dashboard: Direkte DB-Writes (z.B. aus dem Next.js-Dashboard) laufen
+// am Cache vorbei und greifen erst nach einem Restart. Falls das Dashboard
+// Plugins togglen soll, braucht es später einen Invalidierungs-Weg.
+
 const { MessageFlags } = require('discord.js');
 const { PluginSetting } = require('../../database/registry');
 const { getPlugin, isValidPluginId, getAllPlugins } = require('./pluginRegistry');
+const { sendPluginNotification } = require('./pluginNotify');
 
+// `${guildId}:${pluginId}` → { enabled, autoDisabled, disabledReason }
 const cache = new Map();
 
+// Solange der Cache nicht geladen ist (Race-Fenster zwischen Login und
+// clientReady/loadPlugins), gilt Fail-Open.
 let loaded = false;
 
 /**
@@ -45,10 +61,28 @@ function isEnabled(guildId, pluginId) {
 /**
  * Setzt den Status eines Plugins — Write-Through: erst DB, dann Cache.
  * Row-Erstellung ausschließlich über findOrCreate (nie implizit).
+ *
+ * Wird opts.guild übergeben, geht nach erfolgreichem Write eine
+ * Benachrichtigung an den konfigurierten Notify-Channel (fire-and-forget,
+ * blockiert den Toggle nie). opts.actor = auslösender User; ohne actor
+ * wird die Änderung als "System" ausgewiesen.
+ *
+ * Späteres Auto-Disable bei Fehlern ruft einfach auf:
+ *   setEnabled(guild.id, pluginId, false, {
+ *     guild,
+ *     autoDisabled: true,
+ *     disabledReason: 'Wiederholte Fehler im Handler',
+ *   });
+ *
  * @param {string}  guildId
  * @param {string}  pluginId
  * @param {boolean} enabled
- * @param {{ autoDisabled?: boolean, disabledReason?: string|null }} [opts]
+ * @param {{
+ *   autoDisabled?: boolean,
+ *   disabledReason?: string|null,
+ *   guild?: import('discord.js').Guild,
+ *   actor?: import('discord.js').User|null,
+ * }} [opts]
  */
 async function setEnabled(guildId, pluginId, enabled, opts = {}) {
   const autoDisabled = opts.autoDisabled ?? false;
@@ -59,11 +93,26 @@ async function setEnabled(guildId, pluginId, enabled, opts = {}) {
     defaults: { guildId, pluginId, enabled, autoDisabled, disabledReason },
   });
 
+  // Bestehende Row: Werte explizit überschreiben (findOrCreate liefert den alten Stand)
   if (!created) {
     await row.update({ enabled, autoDisabled, disabledReason });
   }
 
   cache.set(`${guildId}:${pluginId}`, { enabled, autoDisabled, disabledReason });
+
+  // Benachrichtigung erst NACH erfolgreichem DB+Cache-Write.
+  // Bewusst ohne await: sendPluginNotification wirft nie und darf die
+  // Antwortzeit des Toggles nicht verlängern.
+  if (opts.guild) {
+    sendPluginNotification(opts.guild, {
+      pluginId,
+      enabled,
+      actor: opts.actor ?? null,
+      autoDisabled,
+      disabledReason,
+    });
+  }
+
   return row;
 }
 
@@ -111,6 +160,7 @@ async function gateInteraction(interaction, handler) {
       allowedMentions: { parse: [] },
     });
   } catch (err) {
+    // z.B. Interaction bereits acknowledged — das Gate greift trotzdem
     console.error('[plugins] Gate-Reply fehlgeschlagen:', err);
   }
   return true;

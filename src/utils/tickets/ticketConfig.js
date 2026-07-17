@@ -65,7 +65,7 @@ module.exports = {
     buttons: ['ticketClose'],
   },
   admin: {
-    teamRoleIds: ['1491473403196997773', '1491473192055865478', '1491399551498719352'],
+    teamRoleIds: ['1491473403196997773', '1491399551498719352'],
     icon: '📓',
     title: 'Admin Report',
     color: 0xf39c12,
