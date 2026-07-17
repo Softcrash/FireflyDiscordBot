@@ -43,11 +43,12 @@ function formatMembers(members) {
 
 function buildSingleUserText(member) {
   return (
-    `✧･ﾟ: ✧･ﾟ: Willkommen auf Firefly Paradise, ${member} :･ﾟ✧:･ﾟ✧\n\n` +
+    `𐙚 Willkommen in Tokyo .ᐟ ${member} 𐙚\n\n` +
     `Schön, dass du den Weg zu uns gefunden hast.\n` +
-    `Schau dich gern in <#${SELFROLES_CHANNEL_ID}> um, damit du dich im Server einfinden kannst.\n` +
-    `Wenn du magst, kannst du dich in <#${VORSTELLUNG_CHANNEL_ID}> ein wenig vorstellen — das ist natürlich kein Muss.\n` +
-    `Wir wünschen dir einen wundervollen Aufenthalt ${HAMTARO_EMOJI}\n\n` +
+    `Schau dich gern in <#${SELFROLES_CHANNEL_ID}> um, damit du dich im Server einfinden kannst.\n\n` +
+    `Wenn du magst, kannst du dich in <#${VORSTELLUNG_CHANNEL_ID}> ein wenig vorstellen — das ist natürlich kein Muss.\n\n` +
+    `Wir wünschen dir einen wundervollen\n` + 
+    `Aufenthalt!\n\n` +
     `Solltest du einer unserer ruhigen user sein dann mach doch gerne ein <#${TICKET_CHANNEL_ID}> auf und\n` +
     `bewirb dich für **Dreamy Garden** und komm entspannt und voller Ruhe an ${CLOUDS_EMOJI}`
   );
@@ -55,12 +56,13 @@ function buildSingleUserText(member) {
 
 function buildMultiUserText(members) {
   return (
-    `✧･ﾟ: ✧･ﾟ: Willkommen auf Firefly Paradise :･ﾟ✧:･ﾟ✧\n` +
+    `𐙚 Willkommen in Tokyo .ᐟ 𐙚\n` +
     `${formatMembers(members)}\n\n` +
     `Schön, dass ihr den Weg zu uns gefunden habt.\n` +
-    `Schaut euch gerne in <#${SELFROLES_CHANNEL_ID}> um, damit ihr euch im Server einfinden könnt.\n` +
-    `Wenn ihr mögt, könnt ihr euch auch in <#${VORSTELLUNG_CHANNEL_ID}> ein wenig vorstellen — das ist natürlich kein Muss.\n` +
-    `Wir wünschen euch einen wundervollen Aufenthalt ${HAMTARO_EMOJI}\n\n` +
+    `Schaut euch gerne in <#${SELFROLES_CHANNEL_ID}> um, damit ihr euch im Server einfinden könnt.\n\n` +
+    `Wenn ihr mögt, könnt ihr euch auch in <#${VORSTELLUNG_CHANNEL_ID}> ein wenig vorstellen — das ist natürlich kein Muss.\n\n` +
+    `Wir wünschen euch einen wundervollen\n` +
+    `Aufenthalt!\n\n` +
     `Solltet ihr einer unserer ruhigen user sein dann macht doch gerne ein <#${TICKET_CHANNEL_ID}> auf und\n` +
     `bewirbt euch für Dreamy Garden und kommt entspannt und voller Ruhe an ${CLOUDS_EMOJI}`
   );
