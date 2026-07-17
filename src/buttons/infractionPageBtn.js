@@ -7,6 +7,7 @@ module.exports = {
   customIdPrefix: 'inf:page:',
   userPermissions: [],
   botPermissions: [],
+  category: 'moderation',
   /**
    * @param {Client} client
    * @param {ButtonInteraction} interaction

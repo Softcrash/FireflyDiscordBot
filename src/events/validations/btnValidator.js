@@ -4,6 +4,7 @@ const { EmbedBuilder } = require("discord.js");
 const { developersId, testServerId } = require("../../config.json");
 const mConfig = require("../../messageConfig.json");
 const getButtons = require("../../utils/getButtons");
+const { gateInteraction } = require("../../utils/plugins/pluginState");
 
 module.exports = async (client, interaction) => {
   if (!interaction.isButton()) return;
@@ -18,6 +19,10 @@ module.exports = async (client, interaction) => {
         (btn.customIdPrefix && interaction.customId.startsWith(btn.customIdPrefix))
     );
     if (!buttonObject) return;
+
+    // Plugin-Gate: getaggte Handler nur ausführen, wenn das Plugin
+    // in dieser Guild aktiv ist (Handler ohne category: Fail-Open)
+    if (await gateInteraction(interaction, buttonObject)) return;
 
     if (buttonObject.devOnly) {
       if (!developersId.includes(interaction.member.id)) {

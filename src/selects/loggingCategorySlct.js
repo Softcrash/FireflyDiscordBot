@@ -4,6 +4,7 @@ module.exports = {
   customId: ID.CATEGORY,
   userPermissions: [],
   botPermissions: [],
+  category: 'logging',
 
   run: async (client, interaction) => {
     const draft = setDraft(interaction.message.id, { category: interaction.values[0] });

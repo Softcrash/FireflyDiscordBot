@@ -4,6 +4,7 @@ module.exports = {
   customId: ID.CHANNEL,
   userPermissions: [],
   botPermissions: [],
+  category: 'logging',
 
   run: async (client, interaction) => {
     const draft = setDraft(interaction.message.id, { channelId: interaction.values[0] });

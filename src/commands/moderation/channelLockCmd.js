@@ -15,6 +15,11 @@ module.exports = {
         .setName('unlock')
         .setDescription('Gibt @everyone das Schreibrecht in diesem Channel zurück.'),
     ),
+  userPermissions: [],
+  botPermissions: [],
+  testMode: true,
+  devOnly: false,
+  category: 'moderation',
 
   execute: async (client, interaction) => {
     const channel = interaction.channel;

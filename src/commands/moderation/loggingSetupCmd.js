@@ -9,6 +9,7 @@ module.exports = {
   userPermissions: [PermissionFlagsBits.ManageGuild],
   botPermissions: [PermissionFlagsBits.ManageWebhooks],
   devOnly: false,
+  category: 'logging',
 
   run: async (client, interaction) => {
     const panel = await buildLoggingPanel(interaction.guild);

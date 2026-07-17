@@ -22,6 +22,7 @@ module.exports = {
   testMode: false,
   userPermissions: [],
   botPermissions: [],
+  category: 'ticket',
   /**
    * @param {Client} client
    * @param {StringSelectMenuInteraction} interaction

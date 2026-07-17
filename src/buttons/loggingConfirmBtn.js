@@ -16,6 +16,7 @@ module.exports = {
   customId: ID.CONFIRM,
   userPermissions: [PermissionFlagsBits.ManageGuild],
   botPermissions: [],
+  category: 'logging',
 
   run: async (client, interaction) => {
     const draft = getDraft(interaction.message.id);
