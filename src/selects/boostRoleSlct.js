@@ -1,74 +1,55 @@
-const {
-  Client,
-  StringSelectMenuInteraction,
-  MessageFlags,
-} = require('discord.js');
+// FILE: src/selects/boosterSlct.js
+const { MessageFlags, PermissionFlagsBits } = require('discord.js');
 const { REACTION_ROLES } = require('../utils/reaktionRoles/boosterRolesConfig');
 
 const EPHEMERAL = { flags: MessageFlags.Ephemeral };
 
 module.exports = {
-  customId: 'boost_role_select_1',
-  devOnly: false,
-  testMode: false,
-  userPermissions: [],
-  botPermissions: [],
-  /**
-   * @param {Client} client
-   * @param {StringSelectMenuInteraction} interaction
-   */
+  // smValidator: startsWith('boost_role_select_') → matcht Menü 1 UND Menü 2.
+  // Welches Menü es war, ist egal — es zählt nur die gewählte roleId.
+  customIdPrefix: 'boost_role_select_',
+  botPermissions: [PermissionFlagsBits.ManageRoles],
+
   run: async (client, interaction) => {
-    const selectedRoleId = interaction.values[0];
-    const { guild, member } = interaction;
+    const roleId = interaction.values[0];
 
-    // Sicherstellen, dass die Rolle aus unserer Config kommt (kein Spoofing)
-    const mapping = REACTION_ROLES.find(r => r.roleId === selectedRoleId);
-    if (!mapping) {
+    // Sicherheitscheck: nur Rollen aus der Config zulassen
+    const configRole = REACTION_ROLES.find(r => r.roleId === roleId);
+    if (!configRole) {
       return interaction.reply({
-        content: '❌ Diese Rolle ist nicht (mehr) verfügbar.',
+        content: '❌ Diese Rolle ist nicht (mehr) konfiguriert.',
         ...EPHEMERAL,
       });
     }
 
-    const role =
-      guild.roles.cache.get(selectedRoleId) ??
-      (await guild.roles.fetch(selectedRoleId).catch(() => null));
-    if (!role) {
-      return interaction.reply({
-        content: '❌ Die Rolle existiert nicht (mehr) auf diesem Server.',
-        ...EPHEMERAL,
-      });
-    }
-
-    // Prüfen ob der User noch boosted
-    const isBoosting = !!member.premiumSinceTimestamp;
-    if (!isBoosting) {
-      return interaction.reply({
-        content: '❌ Du musst den Server boosten, um eine Farbrolle zu erhalten.',
-        ...EPHEMERAL,
-      });
-    }
+    await interaction.deferReply(EPHEMERAL);
+    const member = interaction.member;
 
     try {
-      // Alle anderen Menü-1-Rollen entfernen
-      const menu1Roles = REACTION_ROLES.filter(r => (r.menu ?? 1) === 1);
-      for (const r of menu1Roles) {
-        if (r.roleId !== selectedRoleId && member.roles.cache.has(r.roleId)) {
-          await member.roles.remove(r.roleId, 'Boost-Farbrolle gewechselt').catch(() => null);
-        }
+      // Erneut dieselbe Rolle gewählt → Toggle: Rolle entfernen
+      if (member.roles.cache.has(roleId)) {
+        await member.roles.remove(roleId);
+        return interaction.editReply({
+          content: `✅ ${configRole.emoji} **${configRole.label}** wurde entfernt.`,
+          allowedMentions: { parse: [] },
+        });
       }
 
-      await member.roles.add(selectedRoleId, 'Boost-Panel: Rolle ausgewählt');
-      await interaction.reply({
-        content: `➕ Rolle ${role} wurde **hinzugefügt**.`,
-        ...EPHEMERAL,
+      // Alle anderen Boost-Rollen (aus BEIDEN Menüs) abräumen — nur eine Farbe gleichzeitig
+      const toRemove = REACTION_ROLES
+        .map(r => r.roleId)
+        .filter(id => id !== roleId && member.roles.cache.has(id));
+      if (toRemove.length) await member.roles.remove(toRemove);
+
+      await member.roles.add(roleId);
+      return interaction.editReply({
+        content: `✅ Du hast jetzt ${configRole.emoji} **${configRole.label}**.`,
+        allowedMentions: { parse: [] },
       });
-      return interaction.message.suppressEmbeds(false);
     } catch (err) {
-      console.error('[boost_role_select] Konnte Rolle nicht ändern:', err);
-      return interaction.reply({
-        content: '❌ Konnte die Rolle nicht ändern. Steht meine Bot-Rolle in der Hierarchie *über* der zu vergebenden Rolle und habe ich `Manage Roles`?',
-        ...EPHEMERAL,
+      console.error('[boosterSlct] Rollen-Update fehlgeschlagen:', err);
+      return interaction.editReply({
+        content: '❌ Konnte die Rolle nicht ändern. Steht meine Bot-Rolle über den Boost-Rollen?',
       });
     }
   },
