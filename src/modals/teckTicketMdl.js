@@ -5,6 +5,7 @@ module.exports = {
   customId: 'ticket_modal_comfort_area',
   userPermissions: [],
   botPermissions: [],
+  category: 'ticket',
   /**
    * @param {Client} client
    * @param {ModalSubmitInteraction} interaction

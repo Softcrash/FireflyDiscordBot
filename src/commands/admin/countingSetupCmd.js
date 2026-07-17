@@ -70,6 +70,7 @@ module.exports = {
   botPermissions: [PermissionFlagsBits.AddReactions, PermissionFlagsBits.SendMessages],
   testMode: false,
   devOnly: true,
+  category: 'counting',
 
   run: async (client, interaction) => {
     await interaction.deferReply(EPHEMERAL);

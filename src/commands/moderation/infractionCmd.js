@@ -17,7 +17,7 @@ module.exports = {
   botPermissions: [],
   testMode: true,
   devOnly: false,
-
+  category: 'moderation',
   run: async (client, interaction) => {
     // Wichtig: NICHT deferReply nutzen. Das zIsComponentsV2-Flag muss beim ersten
     // Senden gesetzt werden und kann nachträglich nicht hinzugefügt werden — also

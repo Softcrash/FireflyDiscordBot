@@ -35,6 +35,7 @@ module.exports = {
   botPermissions: [PermissionFlagsBits.BanMembers],
   testMode: true,
   devOnly: false,
+  category: 'moderation',
 
   run: async (client, interaction) => {
     await interaction.deferReply(EPHEMERAL);

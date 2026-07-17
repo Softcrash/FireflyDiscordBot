@@ -23,6 +23,7 @@ module.exports = {
   customId: 'ticketClose',
   userPermissions: [],
   botPermissions: [],
+  category: 'ticket',
   /**
    * @param {Client} client
    * @param {ButtonInteraction} interaction

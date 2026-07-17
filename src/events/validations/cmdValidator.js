@@ -1,9 +1,11 @@
+// FILE: src/events/validations/cmdValidator.js
 require("colors");
 
 const { EmbedBuilder } = require("discord.js");
 const { developersId, testServerId } = require("../../config.json");
 const mConfig = require("../../messageConfig.json");
 const getLocalCommands = require("../../utils/getLocalCommands");
+const { gateInteraction } = require("../../utils/plugins/pluginState");
 //const userPremiumSchema = require("../../schemas/userpremium");
 
 module.exports = async (client, interaction) => {
@@ -15,6 +17,10 @@ module.exports = async (client, interaction) => {
       (cmd) => cmd.data.name === interaction.commandName
     );
     if (!commandObject) return;
+
+    // Plugin-Gate: getaggte Handler nur ausführen, wenn das Plugin
+    // in dieser Guild aktiv ist (Handler ohne category: Fail-Open)
+    if (await gateInteraction(interaction, commandObject)) return;
 
     if (commandObject.devOnly) {
       if (!developersId.includes(interaction.member.id)) {

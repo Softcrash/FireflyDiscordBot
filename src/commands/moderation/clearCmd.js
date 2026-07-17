@@ -31,6 +31,7 @@ module.exports = {
   botPermissions: [PermissionFlagsBits.ManageMessages],
   testMode: true,
   devOnly: false,
+  category: 'moderation',
   run: async (client, interaction) => {
     const { options, channel } = interaction;
     const amount = options.getInteger("amount");
