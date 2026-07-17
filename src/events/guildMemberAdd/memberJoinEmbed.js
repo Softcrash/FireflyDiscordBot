@@ -7,8 +7,8 @@ const BANNER_PATH = path.join(__dirname, '..', '..', 'assets', 'memberEventBanne
 const BANNER_NAME = 'memberEventBanner.jpg';
 const EMBED_COLOR = mConfig.embedColorSuccess;
 
-const TITLE       = 'Welcome in Firefly Paradise 🍃 !🎍';
-const DESCRIPTION = 'Wir bekamen soeben ein neues Lichtlein dazu <3';
+const TITLE       = 'Next Station -  Tokyo.ᐟ';
+const DESCRIPTION = 'Willkommen neuer Reisender, erkunde die Stadt <3';
 const FOOTER      = '<3';
 // ==================
 
