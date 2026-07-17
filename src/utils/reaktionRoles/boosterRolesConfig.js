@@ -31,7 +31,7 @@ module.exports = {
     { emoji: '⚔️', roleId: '1513592928684085258', label: 'Vampire-Blood', menu: 2 },
     { emoji: '🦖', roleId: '1513592803957932074', label: 'Vampire-Blood', menu: 2 },
     { emoji: '📓', roleId: '1513592832106172488', label: 'Vampire-Blood', menu: 2 },
-    { emoji: '🍎', roleId: '1501266018205569154', label: 'Vampire-Blood', menu: 2 },
+    { emoji: '🍎', roleId: '1493317799853166743', label: 'Vampire-Blood', menu: 2 },
     // { emoji: '💎', roleId: 'ROLE_ID', label: 'Diamant', menu: 2 },
   ],
 };
