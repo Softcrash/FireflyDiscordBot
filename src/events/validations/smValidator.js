@@ -1,3 +1,4 @@
+// FILE: src/events/validations/smValidator.js
 require("colors");
 
 const { EmbedBuilder, Client } = require("discord.js");
@@ -17,8 +18,13 @@ module.exports = async (client, interaction) => {
   const selects = getSelects();
 
   try {
+    // Exakter Match (statische Selects) ODER Prefix-Match — so kann EIN Handler
+    // mehrere Selects bedienen (z.B. boost_role_select_1 UND boost_role_select_2)
     const selectObject = selects.find(
-      (select) => select.customId === interaction.customId
+      (select) =>
+        select.customId === interaction.customId ||
+        (select.customIdPrefix &&
+          interaction.customId.startsWith(select.customIdPrefix))
     );
     if (!selectObject) return;
 
