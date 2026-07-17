@@ -8,9 +8,9 @@ const BANNER_PATH = path.join(__dirname, '..', '..', 'assets', 'memberEventBanne
 const BANNER_NAME = 'memberEventBanner.jpg';
 const EMBED_COLOR = mConfig.embedColorSuccess;
 
-const TITLE = 'Goodbye little light 🎋';
+const TITLE = 'Lebe Wohl :(';
 const DESCRIPTION = (mention) =>
-  `${mention} hat leider Firefly Paradise 🍃 verlassen und somit sein Licht verloren :(`;
+  `${mention} hat leider Tokyo.ᐟ verlassen. 💢`;
 // ==================
 
 module.exports = async (client, member) => {
