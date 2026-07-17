@@ -92,6 +92,7 @@ module.exports = {
   botPermissions: [],
   testMode: false,
   devOnly: true,
+  category: 'moderation',
 
   run: async (client, interaction) => {
     await interaction.deferReply(EPHEMERAL);

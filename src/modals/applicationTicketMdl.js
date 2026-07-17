@@ -5,7 +5,7 @@ module.exports = {
   customId: 'ticket_modal_bewerbung',
   userPermissions: [],
   botPermissions: [],
-  category: 'ticket',
+  category: 'tickets',
   /**
    * @param {Client} client
    * @param {ModalSubmitInteraction} interaction
