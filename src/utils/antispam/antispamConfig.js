@@ -21,7 +21,7 @@ module.exports = {
   OWN_GUILD_ID: '1491382344655962135',
 
   BLOCK_INVITES: true,
-  BLOCK_EXTERNAL_LINKS: true,
+  BLOCK_EXTERNAL_LINKS: false,
   ALLOWED_DOMAINS: [
     'discord.com',
     'discordapp.com',
