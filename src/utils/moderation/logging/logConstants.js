@@ -1,5 +1,3 @@
-// Zentrale Metadaten der Logging-Kategorien + Farbpalette.
-
 const CATEGORIES = {
   voice: {
     key: 'voice',
@@ -30,11 +28,49 @@ const CATEGORIES = {
 const CATEGORY_ORDER = ['voice', 'message', 'server', 'user'];
 
 const COLORS = {
-  create: 0x00d26a, // Erstellt / Join (entspricht embedColorSuccess)
-  delete: 0xfb2f61, // Gelöscht / Leave / Ban (entspricht embedColorError)
-  update: 0xffcc4d, // Bearbeitet / Geändert (entspricht embedColorWarning)
-  voice: 0x5865f2, // Voice / neutral
+  create: 0x00d26a,
+  delete: 0xfb2f61,
+  update: 0xffcc4d,
+  voice: 0x5865f2,
   neutral: 0x5865f2,
 };
 
-module.exports = { CATEGORIES, CATEGORY_ORDER, COLORS };
+const CATEGORY_EVENTS = {
+  voice: [
+    { key: 'voiceJoin', label: 'Voice-Join' },
+    { key: 'voiceLeave', label: 'Voice-Leave' },
+    { key: 'voiceMove', label: 'Voice-Wechsel' },
+    { key: 'voiceState', label: 'Mute/Taub/Stream/Kamera' },
+  ],
+  message: [
+    { key: 'messageDelete', label: 'Nachricht gelöscht' },
+    { key: 'messageUpdate', label: 'Nachricht bearbeitet' },
+    { key: 'messageDeleteBulk', label: 'Massenlöschung' },
+  ],
+  user: [
+    { key: 'memberJoin', label: 'Mitglied beigetreten' },
+    { key: 'memberLeave', label: 'Verlassen / Kick' },
+    { key: 'memberUpdate', label: 'Nickname / Rollen / Timeout / Boost' },
+    { key: 'userUpdate', label: 'Username / Avatar (global)' },
+    { key: 'banAdd', label: 'Bann' },
+    { key: 'banRemove', label: 'Entbannung' },
+  ],
+  server: [
+    { key: 'channelCreate', label: 'Channel erstellt' },
+    { key: 'channelDelete', label: 'Channel gelöscht' },
+    { key: 'channelUpdate', label: 'Channel geändert' },
+    { key: 'roleCreate', label: 'Rolle erstellt' },
+    { key: 'roleDelete', label: 'Rolle gelöscht' },
+    { key: 'roleUpdate', label: 'Rolle geändert' },
+    { key: 'emoji', label: 'Emojis' },
+    { key: 'sticker', label: 'Sticker' },
+    { key: 'guildUpdate', label: 'Servereinstellungen' },
+    { key: 'invite', label: 'Einladungen' },
+    { key: 'thread', label: 'Threads' },
+    { key: 'webhookUpdate', label: 'Webhooks' },
+    { key: 'scheduledEvent', label: 'Geplante Events' },
+    { key: 'autoMod', label: 'AutoMod' },
+  ],
+};
+
+module.exports = { CATEGORIES, CATEGORY_ORDER, COLORS, CATEGORY_EVENTS };

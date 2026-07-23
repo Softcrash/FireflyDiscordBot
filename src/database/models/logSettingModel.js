@@ -35,6 +35,28 @@ LogSetting.init(
       allowNull: false,
       defaultValue: true,
     },
+
+    ignoredChannels: {
+      type: DataTypes.JSON,
+      allowNull: false,
+    },
+    ignoredRoles: {
+      type: DataTypes.JSON,
+      allowNull: false,
+    },
+    ignoredUsers: {
+      type: DataTypes.JSON,
+      allowNull: false,
+    },
+    events: {
+      type: DataTypes.JSON,
+      allowNull: false,
+    },
+    logBots: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     sequelize,

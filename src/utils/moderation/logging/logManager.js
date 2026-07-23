@@ -1,10 +1,20 @@
-const { WebhookClient, PermissionFlagsBits } = require('discord.js');
+const { WebhookClient, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { LogSetting } = require('../../../database/registry');
+const { COLORS } = require('./logConstants');
+const { primeFilterFromRow } = require('./logFilter');
 
 const WEBHOOK_NAME = 'Firefly Logs';
 
-// Cache: `${guildId}:${category}` -> WebhookClient (vermeidet ständige Re-Instanziierung)
+const FLUSH_DEBOUNCE_MS = 750;
+const MAX_BATCH = 10;
+const MAX_QUEUE = 500;
+const MAX_ATTEMPTS = 3;
+const STORM_THRESHOLD = 200;
+const STORM_WINDOW_MS = 60 * 1000;
+const STORM_DURATION_MS = 5 * 60 * 1000;
+
 const webhookCache = new Map();
+const queues = new Map();
 
 class MissingWebhookPermission extends Error {
   constructor() {
@@ -13,9 +23,6 @@ class MissingWebhookPermission extends Error {
   }
 }
 
-// Discord liefert das Token application-eigener Webhooks nur an die erstellende
-// App — und nicht immer am frisch erstellten Objekt. Wenn wir es weder direkt
-// noch per fetchWebhooks bekommen, ist der Webhook unbrauchbar.
 class WebhookTokenUnavailable extends Error {
   constructor() {
     super('Webhook token unavailable');
@@ -23,20 +30,12 @@ class WebhookTokenUnavailable extends Error {
   }
 }
 
-// Webhook-Usernamen dürfen "discord"/"clyde" nicht enthalten und max. 80 Zeichen lang sein.
-function safeUsername(name) {
-  if (!name) return WEBHOOK_NAME;
-  const lowered = name.toLowerCase();
-  if (lowered.includes('discord') || lowered.includes('clyde')) return WEBHOOK_NAME;
-  return name.slice(0, 80);
-}
-
-async function resolveWebhook(guild, category) {
-  const cacheKey = `${guild.id}:${category}`;
+async function resolveWebhook(guildId, category) {
+  const cacheKey = `${guildId}:${category}`;
   const cached = webhookCache.get(cacheKey);
   if (cached) return cached;
 
-  const setting = await LogSetting.findOne({ where: { guildId: guild.id, category } });
+  const setting = await LogSetting.findOne({ where: { guildId, category } });
   if (!setting?.enabled || !setting.webhookId || !setting.webhookToken) return null;
 
   const client = new WebhookClient({ id: setting.webhookId, token: setting.webhookToken });
@@ -44,44 +43,225 @@ async function resolveWebhook(guild, category) {
   return client;
 }
 
-/**
- * Sendet ein Embed per Webhook in den konfigurierten Channel der Kategorie.
- * Tut nichts, wenn die Kategorie nicht (mehr) konfiguriert ist.
- */
-async function logEvent(guild, category, embed, { username, avatarURL } = {}) {
-  if (!guild) return;
+// ---------- Queue ----------
 
-  let webhook;
-  try {
-    webhook = await resolveWebhook(guild, category);
-  } catch (err) {
-    console.error(`[logging] resolveWebhook (${category}):`, err);
+function getQueue(guildId, category) {
+  const key = `${guildId}:${category}`;
+  let q = queues.get(key);
+  if (!q) {
+    q = {
+      key,
+      guildId,
+      category,
+      items: [],
+      timer: null,
+      sending: false,
+      dropped: 0,
+      blockedUntil: 0,
+      windowStart: 0,
+      windowCount: 0,
+      stormUntil: 0,
+      stormSuppressed: 0,
+    };
+    queues.set(key, q);
+  }
+  return q;
+}
+
+function enqueue(q, item) {
+  if (q.items.length >= MAX_QUEUE) {
+    q.items.shift();
+    q.dropped += 1;
+  }
+  q.items.push(item);
+}
+
+function scheduleFlush(q, delayMs = FLUSH_DEBOUNCE_MS) {
+  if (q.timer || q.sending) return;
+  const wait = Math.max(delayMs, q.blockedUntil - Date.now());
+  q.timer = setTimeout(() => {
+    q.timer = null;
+    flushQueue(q).catch((err) => console.error('[logging] flush:', err));
+  }, wait);
+  q.timer.unref?.();
+}
+
+function buildDropNotice(count) {
+  return new EmbedBuilder()
+    .setColor(COLORS.update)
+    .setDescription(`\`⚠️\` **${count}** Log-Einträge wegen Queue-Überlauf verworfen.`)
+    .setTimestamp();
+}
+
+function buildStormNotice() {
+  return new EmbedBuilder()
+    .setColor(COLORS.update)
+    .setDescription(
+      '`🌩️` **Sammelmodus aktiv** — sehr hohes Log-Aufkommen. Einzelne Einträge werden für 5 Minuten unterdrückt und anschließend zusammengefasst.'
+    )
+    .setTimestamp();
+}
+
+function buildStormSummary(count) {
+  return new EmbedBuilder()
+    .setColor(COLORS.update)
+    .setDescription(`\`🌩️\` **Sammelmodus beendet** — **${count}** Einträge wurden unterdrückt.`)
+    .setTimestamp();
+}
+
+/**
+ * Reiht ein Embed in die Log-Queue der Kategorie ein und kehrt sofort zurück.
+ * opts.files: Array (AttachmentBuilder / { attachment, name }) — Items mit
+ * Files werden einzeln gesendet.
+ */
+async function logEvent(guild, category, embed, opts = {}) {
+  if (!guild?.id || !embed) return;
+  const q = getQueue(guild.id, category);
+  const now = Date.now();
+
+  if (now - q.windowStart > STORM_WINDOW_MS) {
+    q.windowStart = now;
+    q.windowCount = 0;
+  }
+  q.windowCount += 1;
+
+  if (q.stormUntil) {
+    if (now < q.stormUntil) {
+      q.stormSuppressed += 1;
+      return;
+    }
+    if (q.stormSuppressed > 0) {
+      enqueue(q, { embed: buildStormSummary(q.stormSuppressed), files: null, attempts: 0 });
+    }
+    q.stormUntil = 0;
+    q.stormSuppressed = 0;
+  }
+
+  if (q.windowCount > STORM_THRESHOLD) {
+    q.stormUntil = now + STORM_DURATION_MS;
+    q.stormSuppressed = 1; // das aktuelle Event ist das erste unterdrückte
+    enqueue(q, { embed: buildStormNotice(), files: null, attempts: 0 });
+    scheduleFlush(q);
     return;
   }
-  if (!webhook) return;
 
+  enqueue(q, { embed, files: opts.files ?? null, attempts: 0 });
+  scheduleFlush(q);
+}
+
+async function flushQueue(q) {
+  if (q.sending || !q.items.length) return;
+  q.sending = true;
   try {
-    await webhook.send({
-      username: safeUsername(username),
-      avatarURL: avatarURL ?? undefined,
-      embeds: [embed],
-      allowedMentions: { parse: [] },
-    });
-  } catch (err) {
-    // 10015 = Unknown Webhook → wurde manuell gelöscht, Eintrag säubern
-    if (err?.code === 10015) {
-      webhookCache.delete(`${guild.id}:${category}`);
-      await LogSetting.update(
-        { webhookId: null, webhookToken: null },
-        { where: { guildId: guild.id, category } }
-      ).catch(() => {});
-    } else {
-      console.error(`[logging] send (${category}):`, err);
+    let webhook;
+    try {
+      webhook = await resolveWebhook(q.guildId, q.category);
+    } catch (err) {
+      console.error(`[logging] resolveWebhook (${q.category}):`, err);
+      q.items = [];
+      return;
     }
+    if (!webhook) {
+      q.items = [];
+      q.dropped = 0;
+      return;
+    }
+
+    if (q.dropped > 0) {
+      q.items.unshift({ embed: buildDropNotice(q.dropped), files: null, attempts: 0 });
+      q.dropped = 0;
+    }
+
+    while (q.items.length) {
+      let batch;
+      if (q.items[0].files?.length) {
+        batch = [q.items.shift()];
+      } else {
+        batch = [];
+        while (batch.length < MAX_BATCH && q.items.length && !q.items[0].files?.length) {
+          batch.push(q.items.shift());
+        }
+      }
+      const ok = await sendBatch(q, webhook, batch);
+      if (!ok) return;
+    }
+  } finally {
+    q.sending = false;
+    if (q.items.length) scheduleFlush(q);
   }
 }
 
-// Aktuelle Konfiguration einer Guild als { [category]: LogSetting } zurückgeben.
+async function sendBatch(q, webhook, batch) {
+  try {
+    await webhook.send({
+      username: WEBHOOK_NAME,
+      embeds: batch.map((item) => item.embed),
+      files: batch.length === 1 && batch[0].files?.length ? batch[0].files : undefined,
+      allowedMentions: { parse: [] },
+    });
+    return true;
+  } catch (err) {
+    if (err?.code === 10015) {
+      webhookCache.delete(q.key);
+      await LogSetting.update(
+        { webhookId: null, webhookToken: null },
+        { where: { guildId: q.guildId, category: q.category } }
+      ).catch(() => {});
+      q.items = [];
+      q.dropped = 0;
+      return false;
+    }
+
+    if (err?.status === 429 || err?.name === 'RateLimitError') {
+      const retry = [];
+      let discarded = 0;
+      for (const item of batch) {
+        item.attempts += 1;
+        if (item.attempts < MAX_ATTEMPTS) retry.push(item);
+        else discarded += 1;
+      }
+      if (discarded) {
+        console.warn(
+          `[logging] ${discarded} Einträge nach ${MAX_ATTEMPTS} Rate-Limit-Versuchen verworfen (${q.key})`
+        );
+      }
+      q.items.unshift(...retry);
+      q.blockedUntil = Date.now() + Math.min(2000 * (retry[0]?.attempts ?? 1), 10000);
+      return false;
+    }
+
+    console.error(`[logging] send (${q.category}):`, err);
+    return true;
+  }
+}
+
+async function flushAllQueues() {
+  const pending = [];
+  for (const q of queues.values()) {
+    if (q.timer) {
+      clearTimeout(q.timer);
+      q.timer = null;
+    }
+    q.blockedUntil = 0;
+    pending.push(flushQueue(q).catch(() => {}));
+  }
+  await Promise.allSettled(pending);
+}
+
+function removeGuild(guildId) {
+  for (const key of [...queues.keys()]) {
+    if (key.startsWith(`${guildId}:`)) {
+      const q = queues.get(key);
+      if (q?.timer) clearTimeout(q.timer);
+      queues.delete(key);
+    }
+  }
+  for (const key of [...webhookCache.keys()]) {
+    if (key.startsWith(`${guildId}:`)) webhookCache.delete(key);
+  }
+}
+
+// ---------- Konfiguration ----------
 async function getConfig(guildId) {
   const rows = await LogSetting.findAll({ where: { guildId } });
   const map = {};
@@ -91,9 +271,10 @@ async function getConfig(guildId) {
 
 /**
  * Setzt den Zielchannel einer Kategorie:
- *  - prüft die ManageWebhooks-Berechtigung im Zielchannel
+ *  - prüft ManageWebhooks im Zielchannel
  *  - entfernt einen evtl. alten Webhook der Kategorie (sauberes Reconfigure)
  *  - erstellt einen neuen Webhook, sichert das Token und persistiert id + token
+ *  - JSON-Filterfelder werden bei CREATE explizit mitgesetzt (NOT NULL!)
  */
 async function setLogChannel(guild, category, channel) {
   const me = guild.members.me ?? (await guild.members.fetchMe());
@@ -103,13 +284,11 @@ async function setLogChannel(guild, category, channel) {
 
   const existing = await LogSetting.findOne({ where: { guildId: guild.id, category } });
 
-  // Alten Webhook der Kategorie entfernen (sauberes Reconfigure).
   if (existing?.webhookId) {
     if (existing.webhookToken) {
       const old = new WebhookClient({ id: existing.webhookId, token: existing.webhookToken });
       await old.delete('Logging neu konfiguriert').catch(() => {});
     } else if (existing.channelId) {
-      // Kein Token gespeichert → per Bot-Auth im (ggf. alten) Channel löschen.
       const oldChannel =
         guild.channels.cache.get(existing.channelId) ??
         (await guild.channels.fetch(existing.channelId).catch(() => null));
@@ -128,8 +307,6 @@ async function setLogChannel(guild, category, channel) {
     reason: `Logging: ${category}`,
   });
 
-  // Token ermitteln. Bei application-eigenen Webhooks ist webhook.token am frisch
-  // erstellten Objekt nicht immer gesetzt → erneut über fetchWebhooks laden.
   let token = webhook.token ?? null;
   if (!token) {
     const hooks = await channel.fetchWebhooks().catch(() => null);
@@ -140,37 +317,49 @@ async function setLogChannel(guild, category, channel) {
     );
   }
 
-  // Ohne Token ist der Webhook unbrauchbar → aufräumen und Fehler melden,
-  // statt still NULL zu speichern (das würde stilles Nicht-Loggen verursachen).
   if (!token) {
     await webhook.delete('Kein Token erhalten').catch(() => {});
     throw new WebhookTokenUnavailable();
   }
 
+  let row;
   if (existing) {
     await existing.update({
       channelId: channel.id,
       webhookId: webhook.id,
       webhookToken: token,
       enabled: true,
+      ignoredChannels: existing.ignoredChannels ?? [],
+      ignoredRoles: existing.ignoredRoles ?? [],
+      ignoredUsers: existing.ignoredUsers ?? [],
+      events: existing.events ?? {},
     });
+    row = existing;
   } else {
-    await LogSetting.create({
+    row = await LogSetting.create({
       guildId: guild.id,
       category,
       channelId: channel.id,
       webhookId: webhook.id,
       webhookToken: token,
       enabled: true,
+      ignoredChannels: [],
+      ignoredRoles: [],
+      ignoredUsers: [],
+      events: {},
+      logBots: false,
     });
   }
 
   webhookCache.delete(`${guild.id}:${category}`);
+  primeFilterFromRow(row);
   return webhook;
 }
 
 module.exports = {
   logEvent,
+  flushAllQueues,
+  removeGuild,
   getConfig,
   setLogChannel,
   MissingWebhookPermission,
