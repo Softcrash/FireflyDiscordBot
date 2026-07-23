@@ -78,7 +78,7 @@ module.exports = {
   userPermissions: [PermissionFlagsBits.Administrator],
   botPermissions: [],
   devOnly: false,
-  deleted: true,
+  deleted: false,
   // Bewusst KEIN category-Feld: /plugin darf sich nie selbst aussperren.
 
   run: async (client, interaction) => {

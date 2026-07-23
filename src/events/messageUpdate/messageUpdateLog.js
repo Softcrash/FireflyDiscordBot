@@ -1,6 +1,8 @@
-const { EmbedBuilder } = require('discord.js');
+const { AttachmentBuilder } = require('discord.js');
 const { logEvent } = require('../../utils/moderation/logging/logManager');
-const { COLORS } = require('../../utils/moderation/logging/logConstants');
+const { buildLogEmbed } = require('../../utils/moderation/logging/logEmbed');
+const { shouldLog } = require('../../utils/moderation/logging/logFilter');
+const { isEnabled } = require('../../utils/plugins/pluginState');
 
 module.exports = async (client, oldMessage, newMessage) => {
   if (newMessage.partial) {
@@ -9,42 +11,68 @@ module.exports = async (client, oldMessage, newMessage) => {
   }
 
   const guild = newMessage.guild;
-  if (!guild) return; // DMs ignorieren
-  if (newMessage.author?.bot || newMessage.webhookId) return;
+  if (!guild) return;
+  if (!isEnabled(guild.id, 'logging')) return;
+  if (newMessage.webhookId) return;
 
   if (!newMessage.editedTimestamp) return;
-
-  const before = oldMessage.partial
-    ? '`— nicht im Cache —`'
-    : oldMessage.content?.length
-    ? oldMessage.content.slice(0, 1000)
-    : '`— leer —`';
-  const after = newMessage.content?.length ? newMessage.content.slice(0, 1000) : '`— leer —`';
-
-  if (!oldMessage.partial && before === after) return;
+  if (!oldMessage.partial && oldMessage.content === newMessage.content) return;
 
   const author = newMessage.author;
-
-  const embed = new EmbedBuilder()
-    .setColor(COLORS.update)
-    .setTitle('✏️ Nachricht bearbeitet')
-    .setDescription(
-      `**Autor:** ${author ? `${author} (\`${author.id}\`)` : '`unbekannt`'}\n` +
-        `**Kanal:** <#${newMessage.channelId}> · [Zur Nachricht](${newMessage.url})`
-    )
-    .addFields(
-      { name: 'Vorher', value: before },
-      { name: 'Nachher', value: after }
-    )
-    .setTimestamp();
-
-  if (author) {
-    embed.setAuthor({ name: author.username, iconURL: author.displayAvatarURL() });
-    embed.setFooter({ text: `User-ID: ${author.id}` });
+  if (
+    !shouldLog(guild.id, 'message', 'messageUpdate', {
+      channelId: newMessage.channelId,
+      parentId: newMessage.channel?.parentId ?? null,
+      user: author,
+      member: newMessage.member ?? null,
+      isBot: author?.bot ?? false,
+    })
+  ) {
+    return;
   }
 
-  await logEvent(guild, 'message', embed, {
-    username: author?.username,
-    avatarURL: author?.displayAvatarURL(),
+  const beforeRaw = oldMessage.partial ? null : oldMessage.content ?? '';
+  const afterRaw = newMessage.content ?? '';
+
+  const files = [];
+  if ((beforeRaw?.length ?? 0) > 1024 || afterRaw.length > 1024) {
+    const txt = [
+      `Nachricht bearbeitet — ${newMessage.url}`,
+      `Autor: ${author?.username ?? 'unbekannt'} (${author?.id ?? '?'})`,
+      '',
+      `${'='.repeat(5)} VORHER ${'='.repeat(47)}`,
+      beforeRaw ?? '— nicht im Cache —',
+      '',
+      `${'='.repeat(5)} NACHHER ${'='.repeat(46)}`,
+      afterRaw,
+      '',
+    ].join('\n');
+    files.push(
+      new AttachmentBuilder(Buffer.from(txt, 'utf8'), {
+        name: `bearbeitung_${newMessage.id}.txt`,
+      })
+    );
+  }
+
+  const display = (raw, missing) => {
+    if (raw === null) return missing;
+    if (!raw.length) return '`— leer —`';
+    return raw.length > 1024 ? `${raw.slice(0, 950)}…\n*(vollständig im Anhang)*` : raw;
+  };
+
+  const embed = buildLogEmbed({
+    action: 'update',
+    emoji: '✏️',
+    title: 'Nachricht bearbeitet',
+    description:
+      `**Autor:** ${author ? `${author} (\`${author.id}\`)` : '`unbekannt`'}\n` +
+      `**Kanal:** <#${newMessage.channelId}> · [Zur Nachricht](${newMessage.url})`,
+    fields: [
+      { name: 'Vorher', value: display(beforeRaw, '`— nicht im Cache —`') },
+      { name: 'Nachher', value: display(afterRaw, '`— leer —`') },
+    ],
+    footerId: newMessage.id,
   });
+
+  await logEvent(guild, 'message', embed, { files });
 };
