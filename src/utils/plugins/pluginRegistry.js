@@ -3,41 +3,46 @@ const PLUGINS = [
     id: 'moderation',
     name: 'Moderation',
     description: 'Mod-Commands wie Channel-Lock, Infractions & Co.',
-    defaultEnabled: true,
+    defaultEnabled: false,
   },
   {
     id: 'logging',
     name: 'Logging',
     description: 'Webhook-basierte Server-, User- und Nachrichten-Logs.',
-    defaultEnabled: true,
+    defaultEnabled: false,
   },
   {
     id: 'stats',
     name: 'Statistiken',
     description: 'Nachrichten- und Voice-Statistiken (Panels).',
-    defaultEnabled: true,
+    defaultEnabled: false,
   },
   {
     id: 'tickets',
     name: 'Tickets',
     description: 'Ticket-System mit Bewerbungs- und Support-Panels.',
-    defaultEnabled: true,
+    defaultEnabled: false,
   },
   {
     id: 'fun',
     name: 'Games & Fun',
     description: 'Spiele und Spaß-Commands.',
-    defaultEnabled: true,
+    defaultEnabled: false,
   },
   {
     id: 'counting',
     name: 'Counting',
     description: 'Zähl-Channel mit Regeln und Highscore.',
-    defaultEnabled: true,
+    defaultEnabled: false,
+  },
+  {
+    id: 'leveling',
+    name: 'Levelsystem',
+    description: 'XP & Level für Nachrichten und Voice-Zeit, inkl. Rollenbelohnungen.',
+    defaultEnabled: false,
   },
 ];
 
-// Lookup-Map für O(1)-Zugriff, einmal beim Require aufgebaut
 const byId = new Map(PLUGINS.map((p) => [p.id, p]));
 
 function getPlugin(id) {
